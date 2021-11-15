@@ -58,7 +58,7 @@ if (recv_res.second) {
     return;
 }
 
-std::string website(recv_result.first.begin(), recv_result.first.end());
+std::string website(recv_res.first.begin(), recv_res.first.end());
 std::cout << website << std::endl;
 ```
     

@@ -47,6 +47,7 @@ std::pair<std::vector<uint8_t>, std::error_condition> netlib::client::recv(std::
     std::vector<uint8_t> data(byte_count, 0);
     int32_t recv_res = ::recv(_socket.value().get_raw().value(), data.data(), byte_count, 0);
     if (recv_res >= 0) {
+        data.resize(recv_res);
         return {data, {}};
     }
     return {{}, socket_get_last_error()};
