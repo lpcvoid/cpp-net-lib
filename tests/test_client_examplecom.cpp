@@ -2,6 +2,8 @@
 #include "../3rdparty/doctest/doctest/doctest.h"
 #include "../src/Client.hpp"
 
+static const std::string basic_get = R"(GET / HTTP/1.1\r\nHost: example.com\r\n\r\n)";
+
 TEST_CASE("Client example.com async")
 {
   netlib::client client;
@@ -14,8 +16,6 @@ TEST_CASE("Client example.com async")
   while (connect_future.wait_for(std::chrono::milliseconds(10)) != std::future_status::ready) {}
 
   CHECK_FALSE(connect_future.get().value());
-
-  const std::string basic_get = R"(GET / HTTP/1.1\r\nHost: example.com\r\n\r\n)";
 
   auto send_future = client.send_async(std::vector<uint8_t>(basic_get.begin(), basic_get.end()),
       std::chrono::milliseconds(1000));
@@ -34,4 +34,30 @@ TEST_CASE("Client example.com async")
   std::string website(recv_result.first.begin(), recv_result.first.end());
   CHECK_NE(website.find("HTTP Version Not Supported"), std::string::npos); // 1.1 is way too old
 
+}
+
+TEST_CASE("Client example.com") {
+  netlib::client client;
+  std::error_condition connect_result = client.connect("example.com",
+                                             "http",
+                                             netlib::AddressFamily::IPv4,
+                                             netlib::AddressProtocol::TCP,
+                                             std::chrono::milliseconds(10000));
+
+  CHECK_FALSE(connect_result);
+
+  std::pair<std::size_t, std::error_condition> send_result = client.send(
+      std::vector<uint8_t>(basic_get.begin(), basic_get.end()),std::chrono::milliseconds(1000)
+      );
+
+  CHECK_FALSE(send_result.second);
+  CHECK_EQ(send_result.first, basic_get.size());
+
+  std::pair<std::vector<uint8_t>, std::error_condition>  recv_result = client.recv(2048,
+                                                                                  std::chrono::milliseconds(3000));
+
+  CHECK_FALSE(recv_result.second);
+  CHECK_GT(recv_result.first.size(), basic_get.size());
+  std::string website(recv_result.first.begin(), recv_result.first.end());
+  CHECK_NE(website.find("HTTP Version Not Supported"), std::string::npos); // 1.1 is way too old
 }
