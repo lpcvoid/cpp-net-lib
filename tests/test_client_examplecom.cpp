@@ -4,6 +4,8 @@
 
 static const std::string basic_get = R"(GET / HTTP/1.1\r\nHost: example.com\r\n\r\n)";
 
+using namespace std::chrono_literals;
+
 TEST_CASE("Client example.com async")
 {
   netlib::client client;
@@ -11,14 +13,13 @@ TEST_CASE("Client example.com async")
                                              static_cast<uint16_t>(80),
                                              netlib::AddressFamily::IPv4,
                                              netlib::AddressProtocol::TCP,
-                                             std::chrono::milliseconds(10000));
+                                             10000ms);
 
   while (connect_future.wait_for(std::chrono::milliseconds(10)) != std::future_status::ready) {}
 
   CHECK_FALSE(connect_future.get().value());
 
-  auto send_future = client.send_async(std::vector<uint8_t>(basic_get.begin(), basic_get.end()),
-      std::chrono::milliseconds(1000));
+  auto send_future = client.send_async(std::vector<uint8_t>(basic_get.begin(), basic_get.end()),1000ms);
 
   while (send_future.wait_for(std::chrono::milliseconds(10)) != std::future_status::ready) {}
   auto send_result = send_future.get();
@@ -26,7 +27,7 @@ TEST_CASE("Client example.com async")
   CHECK_FALSE(send_result.second);
   CHECK_EQ(send_result.first, basic_get.size());
 
-  auto recv_future = client.recv_async(2048, std::chrono::milliseconds(3000));
+  auto recv_future = client.recv_async(2048, 3000ms);
   auto recv_result = recv_future.get();
 
   CHECK_FALSE(recv_result.second);
@@ -42,19 +43,17 @@ TEST_CASE("Client example.com") {
                                              "http",
                                              netlib::AddressFamily::IPv4,
                                              netlib::AddressProtocol::TCP,
-                                             std::chrono::milliseconds(10000));
+                                             1000ms);
 
   CHECK_FALSE(connect_result);
 
   std::pair<std::size_t, std::error_condition> send_result = client.send(
-      std::vector<uint8_t>(basic_get.begin(), basic_get.end()),std::chrono::milliseconds(1000)
-      );
+      std::vector<uint8_t>(basic_get.begin(), basic_get.end()),1000ms);
 
   CHECK_FALSE(send_result.second);
   CHECK_EQ(send_result.first, basic_get.size());
 
-  std::pair<std::vector<uint8_t>, std::error_condition>  recv_result = client.recv(2048,
-                                                                                  std::chrono::milliseconds(3000));
+  std::pair<std::vector<uint8_t>, std::error_condition>  recv_result = client.recv(2048, 3000ms);
 
   CHECK_FALSE(recv_result.second);
   CHECK_GT(recv_result.first.size(), basic_get.size());
