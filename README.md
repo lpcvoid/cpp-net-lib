@@ -27,38 +27,40 @@ instead use something like `std::chrono::milliseconds(n)`.
 
 #### Synchronous client (blocking)
 
-     //for prefixes
-    netlib::client client;
-    std::error_condition connect_result = 
-    client.connect("example.com",                  // can also be an ip
-                   "http",                         // can also be a uint16_t port
-                   netlib::AddressFamily::IPv4,    // use IPv4
-                   netlib::AddressProtocol::TCP,   // use TCP since we are interested in http
-                   1000ms);                        // timeout
+```c++
+netlib::client client;
+std::error_condition connect_result = 
+client.connect("example.com",                  // can also be an ip
+               "http",                         // can also be a uint16_t port
+               netlib::AddressFamily::IPv4,    // use IPv4
+               netlib::AddressProtocol::TCP,   // use TCP since we are interested in http
+               1000ms);                        // timeout
+
+if (connect_result) {
+    std::cerr << "Connection failed! Error: " << connect_result.message() << std::endl;
+    return;
+}
+
+static const std::string basic_get = R"(GET / HTTP/1.1\r\nHost: example.com\r\n\r\n)";
+
+std::pair<std::size_t, std::error_condition> send_res = 
+                            client.send({basic_get.begin(), basic_get.end()}, 1000ms);
+
+if (send_res.second) {
+    std::cerr << "Sending failed! Error: " << send_res.second.message() << std::endl;
+    return;
+}
+
+std::pair<std::vector<uint8_t>, std::error_condition>  recv_res = client.recv(2048, 3000ms);
+
+if (recv_res.second) {
+    std::cerr << "Recv failed! Error: " << recv_res.second.message() << std::endl;
+    return;
+}
+
+std::string website(recv_result.first.begin(), recv_result.first.end());
+std::cout << website << std::endl;
+```
     
-    if (connect_result) {
-        std::cerr << "Connection failed! Error: " << connect_result.message() << std::endl;
-        return;
-    }
-
-    static const std::string basic_get = R"(GET / HTTP/1.1\r\nHost: example.com\r\n\r\n)";
-
-    std::pair<std::size_t, std::error_condition> send_res = 
-                                client.send({basic_get.begin(), basic_get.end()}, 1000ms);
-    
-    if (send_res.second) {
-        std::cerr << "Sending failed! Error: " << send_res.second.message() << std::endl;
-        return;
-    }
-
-    std::pair<std::vector<uint8_t>, std::error_condition>  recv_res = client.recv(2048, 3000ms);
-    
-    if (recv_res.second) {
-        std::cerr << "Recv failed! Error: " << recv_res.second.message() << std::endl;
-        return;
-    }
-
-    std::string website(recv_result.first.begin(), recv_result.first.end());
-    std::cout << website << std::endl;
 
 
