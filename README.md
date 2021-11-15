@@ -1,5 +1,9 @@
 # cpp-net-lib
 
+***
+
+    This lib is under heavy development and not really ready for use yet.
+
 Modern, compact and cross plattform C++ network/sockets library. 
 Don't mind the crappy name, I suck at naming things.
 
