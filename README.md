@@ -43,7 +43,8 @@ instead use something like `std::chrono::milliseconds(n)`.
 
     static const std::string basic_get = R"(GET / HTTP/1.1\r\nHost: example.com\r\n\r\n)";
 
-    std::pair<std::size_t, std::error_condition> send_res = client.send({basic_get.begin(), basic_get.end()}, 1000ms);
+    std::pair<std::size_t, std::error_condition> send_res = 
+                                client.send({basic_get.begin(), basic_get.end()}, 1000ms);
     
     if (send_res.second) {
         std::cerr << "Sending failed! Error: " << send_res.second.message() << std::endl;
