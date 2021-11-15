@@ -15,13 +15,13 @@ TEST_CASE("Client example.com async")
                                              netlib::AddressProtocol::TCP,
                                              10000ms);
 
-  while (connect_future.wait_for(std::chrono::milliseconds(10)) != std::future_status::ready) {}
+  while (connect_future.wait_for(10ms) != std::future_status::ready) {}
 
   CHECK_FALSE(connect_future.get().value());
 
   auto send_future = client.send_async(std::vector<uint8_t>(basic_get.begin(), basic_get.end()),1000ms);
 
-  while (send_future.wait_for(std::chrono::milliseconds(10)) != std::future_status::ready) {}
+  while (send_future.wait_for(10ms) != std::future_status::ready) {}
   auto send_result = send_future.get();
 
   CHECK_FALSE(send_result.second);
