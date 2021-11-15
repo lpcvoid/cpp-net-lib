@@ -78,10 +78,16 @@ auto connect_future = client.connect_async("example.com",
 while (connect_future.wait_for(10ms) != std::future_status::ready) {}
 auto send_future = client.send_async({basic_get.begin(), basic_get.end()},1000ms);
 
-while (send_future.wait_for(10ms) != std::future_status::ready) {}
-auto send_result = send_future.get();
+while (send_future.wait_for(10ms) != std::future_status::ready) {
+    // do something cool while waiting for send to finish
+}
 
 auto recv_future = client.recv_async(2048, 3000ms);
+
+while (recv_future.wait_for(10ms) != std::future_status::ready) {
+    // do something cool while waiting for data to come in
+}
+
 auto recv_result = recv_future.get();
 
 std::string website(recv_result.first.begin(), recv_result.first.end());
