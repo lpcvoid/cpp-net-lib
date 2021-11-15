@@ -46,9 +46,11 @@ std::pair<std::vector<uint8_t>, std::error_condition> netlib::client::recv(std::
 
     std::vector<uint8_t> data(byte_count, 0);
     int32_t recv_res = ::recv(_socket.value().get_raw().value(), data.data(), byte_count, 0);
-    if (recv_res >= 0) {
+    if (recv_res > 0) {
         data.resize(recv_res);
         return {data, {}};
+    } else if (recv_res == 0){
+      return {{}, std::errc::connection_aborted};
     }
     return {{}, socket_get_last_error()};
 }
@@ -169,9 +171,9 @@ std::pair<addrinfo*, std::error_condition> netlib::client::get_addrinfo(const st
 
     addrinfo *result = nullptr;
     addrinfo hints{};
-    hints.ai_family = static_cast<int>(address_family);    /* Allow IPv4 or IPv6 */
+    hints.ai_family = static_cast<int>(address_family);
     hints.ai_socktype = static_cast<int>(address_protocol);
-    hints.ai_flags = AI_ADDRCONFIG;
+    hints.ai_flags = AI_ADDRCONFIG; //use system config for determining which interfaces to use
     hints.ai_protocol = 0;
 
     int gai_res = getaddrinfo(host.c_str(), service.c_str(), &hints, &result);
