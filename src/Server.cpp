@@ -17,7 +17,7 @@ std::error_condition netlib::server::create(const std::string &bind_host,
   }
 
   const std::string service_string = std::holds_alternative<uint16_t>(service) ? std::to_string(std::get<uint16_t>(service)) : std::get<std::string>(service);
-  std::pair<addrinfo*, std::error_condition> addrinfo_result = service_resolver::get_addrinfo(bind_host, service_string, address_family, address_protocol, AI_PASSIVE);
+  std::pair<addrinfo*, std::error_condition> addrinfo_result = service_resolver::get_addrinfo(std::nullopt, service_string, address_family, address_protocol, AI_PASSIVE);
 
   if (addrinfo_result.first == nullptr) {
     return addrinfo_result.second;
@@ -36,6 +36,7 @@ std::error_condition netlib::server::create(const std::string &bind_host,
       return s_create_error;
     }
     _listener_sock->set_nonblocking(true);
+
     if (address_protocol == AddressProtocol::TCP) {
       int32_t res = ::bind(_listener_sock->get_raw().value(), res_addrinfo->ai_addr, res_addrinfo->ai_addrlen);
       if (res < 0) {
@@ -48,10 +49,11 @@ std::error_condition netlib::server::create(const std::string &bind_host,
         continue;
       }
 
-      _accept_thread = std::thread(([this](){
+      _accept_thread = std::thread([this](){
         client_endpoint new_endpoint;
         while (_server_active) {
           std::this_thread::sleep_for(std::chrono::milliseconds(10));
+          new_endpoint.addr_len = sizeof(addrinfo);
           int32_t status = ::accept(_listener_sock->get_raw().value(), new_endpoint.addr, &new_endpoint.addr_len);
           if (status > 0) {
             new_endpoint.socket.set_raw(status);
@@ -62,12 +64,12 @@ std::error_condition netlib::server::create(const std::string &bind_host,
             if (_cb_onconnect) {
               _cb_onconnect(new_endpoint);
             }
-            new_endpoint.addr_len = sizeof(addrinfo);
           }
         }
-      }));
+      });
     }
 
+    _processor_thread = std::thread(&server::processing_func, this);
     //all went well
     break;
   }
@@ -81,7 +83,29 @@ std::size_t netlib::server::get_client_count() {
 }
 
 void netlib::server::processing_func() {
+  while (_server_active) {
+    fd_set fdset;
+    socket_t highest_fd = 0;
+    FD_ZERO(&fdset);
+    {
+      std::lock_guard<std::mutex> lock(_mutex);
+      for (auto& client : _clients) {
+        socket_t fd = client.socket.get_raw().value();
+        if (highest_fd < fd){
+          highest_fd = fd;
+        }
+        FD_SET(fd, &fdset);
+      }
+    }
+    //we want the timeout to be fairly low, so that we avoid situations where
+    //we have a new client in _clients, but are not monitoring it yet - that
+    //would mean we have a "hardcoded" delay in servicing a new clients packets
+    timeval tv{.tv_sec = 0, .tv_usec= 50 * 1000}; //50ms
+    int32_t select_res = ::select(highest_fd + 1, &fdset, nullptr, nullptr, &tv);
+    if (select_res > 0) {
 
+    }
+  }
 }
 
 void netlib::server::accept_func() {
