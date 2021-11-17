@@ -11,8 +11,9 @@ std::error_condition netlib::server::create(const std::string &bind_host,
                        const std::variant<std::string, uint16_t> &service,
                                             AddressFamily address_family,
                                             AddressProtocol address_protocol) {
+
   const std::string service_string = std::holds_alternative<uint16_t>(service) ? std::to_string(std::get<uint16_t>(service)) : std::get<std::string>(service);
-  std::pair<addrinfo*, std::error_condition> addrinfo_result = service_resolver::get_addrinfo(bind_host, service_string, address_family, address_protocol);
+  std::pair<addrinfo*, std::error_condition> addrinfo_result = service_resolver::get_addrinfo(bind_host, service_string, address_family, address_protocol, AI_PASSIVE);
 
 }
 

@@ -70,7 +70,7 @@ std::error_condition netlib::client::connect(const std::string &host,
         }
     }
     const std::string service_string = std::holds_alternative<uint16_t>(service) ? std::to_string(std::get<uint16_t>(service)) : std::get<std::string>(service);
-    std::pair<addrinfo*, std::error_condition> addrinfo_result = service_resolver::get_addrinfo(host, service_string, address_family, address_protocol);
+    std::pair<addrinfo*, std::error_condition> addrinfo_result = service_resolver::get_addrinfo(host, service_string, address_family, address_protocol, AI_ADDRCONFIG);
     if (addrinfo_result.first == nullptr) {
         return addrinfo_result.second;
     }

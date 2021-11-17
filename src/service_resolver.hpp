@@ -8,10 +8,11 @@
 namespace netlib {
   class service_resolver {
   public:
-    static std::pair<addrinfo*, std::error_condition> get_addrinfo(const std::string& host,
-                                                             const std::string &service,
-                                                             AddressFamily address_family,
-                                                             AddressProtocol address_protocol);
+    static std::pair<addrinfo*, std::error_condition> get_addrinfo( std::optional<std::string> host,
+                                                                    std::optional<std::string> service,
+                                                                    AddressFamily address_family,
+                                                                    AddressProtocol address_protocol,
+                                                                    uint32_t flags = 0);
   };
 }
 
