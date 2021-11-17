@@ -38,6 +38,11 @@ using socket_t = int32_t;
 #endif
 
 namespace netlib {
+
+    enum class AddressFamily {IPv4 = AF_INET, IPv6 = AF_INET6, unspecified = AF_UNSPEC};
+    enum class AddressProtocol {TCP = SOCK_STREAM, UDP = SOCK_DGRAM};
+    enum class OperationClass {read = 1, write = 2, both = 3};
+
     class Socket {
     private:
         std::optional<socket_t> _socket = std::nullopt;

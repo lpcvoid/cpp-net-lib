@@ -9,17 +9,10 @@ namespace netlib {
 
     using namespace std::chrono_literals;
 
-    enum class AddressFamily {IPv4 = AF_INET, IPv6 = AF_INET6, unspecified = AF_UNSPEC};
-    enum class AddressProtocol {TCP = SOCK_STREAM, UDP = SOCK_DGRAM};
-    enum class OperationClass {read = 1, write = 2, both = 3};
-
     class client {
     protected:
         std::optional<netlib::Socket> _socket;
-        std::pair<addrinfo*, std::error_condition> get_addrinfo(const std::string& host,
-                                                                const std::string &service,
-                                                                AddressFamily address_family,
-                                                                AddressProtocol address_protocol);
+
         std::pair<std::error_condition, std::chrono::milliseconds>  wait_for_operation(socket_t sock, OperationClass op_class, std::chrono::milliseconds timeout);
         /*
         std::string _host;

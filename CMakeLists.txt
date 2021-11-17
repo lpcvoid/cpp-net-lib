@@ -3,7 +3,7 @@ project(getcat)
 set(CMAKE_CXX_STANDARD 20)
 
 set(NETLIB_SRC src/Socket.hpp src/Error.hpp src/Client.cpp src/Client.hpp
-                  src/Server.cpp src/Server.hpp)
+                  src/Server.cpp src/Server.hpp src/service_resolver.cpp src/service_resolver.hpp)
 
 # doctest
 include_directories(3rdparty)
