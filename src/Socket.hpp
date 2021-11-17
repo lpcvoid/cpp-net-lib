@@ -119,6 +119,10 @@ namespace netlib {
             return {};
         }
 
+        void set_raw(socket_t sock) {
+          _socket = sock;
+        }
+
         void close() {
             if (_socket) {
 #ifdef _WIN32
