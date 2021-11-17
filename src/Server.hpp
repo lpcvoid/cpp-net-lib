@@ -20,8 +20,8 @@ namespace netlib {
 
     using client_id_t = uint32_t;
     using callback_connect_t = std::function<std::vector<uint8_t>(client_endpoint)>;
-    using callback_recv_t = std::function<std::vector<uint8_t>(client_id_t, std::vector<uint8_t>)>;
-    using callback_error_t = std::function<void(client_id_t, std::error_condition)>;
+    using callback_recv_t = std::function<std::vector<uint8_t>(client_endpoint, std::vector<uint8_t>)>;
+    using callback_error_t = std::function<void(client_endpoint, std::error_condition)>;
 
     class server {
     private:
@@ -37,6 +37,7 @@ namespace netlib {
         std::thread _processor_thread;
         void processing_func();
         void accept_func();
+        std::error_condition handle_client(client_endpoint endpoint);
       public:
         server();
         std::error_condition create(const std::string& bind_host,

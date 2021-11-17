@@ -4,6 +4,8 @@
 
 #include "Server.hpp"
 #include "service_resolver.hpp"
+#include <cassert>
+#include <csignal>
 
 netlib::server::server() {}
 
@@ -103,6 +105,23 @@ void netlib::server::processing_func() {
     timeval tv{.tv_sec = 0, .tv_usec= 50 * 1000}; //50ms
     int32_t select_res = ::select(highest_fd + 1, &fdset, nullptr, nullptr, &tv);
     if (select_res > 0) {
+      std::vector<client_endpoint> client_refs(select_res);
+      uint32_t index = 0;
+      {
+        std::lock_guard<std::mutex> lock(_mutex);
+        for (auto& client : _clients) {
+          socket_t fd = client.socket.get_raw().value();
+          if (FD_ISSET(fd, &fdset)){
+            client_refs[index++] = client;
+          }
+        }
+      }
+      //TODO: remove this later on
+      assert(index == select_res);
+      //TODO: threadpool, don't spawn a thread each time
+      for (auto& client_to_recv : client_refs) {
+          std::thread(&server::handle_client, this, client_to_recv).detach();
+      }
 
     }
   }
@@ -120,4 +139,22 @@ void netlib::server::close() {
     _listener_sock->close();
     _listener_sock.reset();
   }
+}
+std::error_condition
+netlib::server::handle_client(netlib::client_endpoint endpoint) {
+  std::vector<uint8_t> total_buffer;
+  std::array<uint8_t, 2048> buffer{};
+  while (int32_t recv_res = ::recv(endpoint.socket.get_raw().value(), buffer.data(), buffer.size(), MSG_WAITALL) > 0) {
+    total_buffer.insert(total_buffer.end(), buffer.begin(), buffer.begin() + recv_res);
+  }
+  if (_cb_on_recv) {
+    std::vector<uint8_t> response = _cb_on_recv(endpoint, total_buffer);
+    if (!response.empty()) {
+      int32_t send_result = ::send(endpoint.socket.get_raw().value(), response.data(), response.size(), 0);
+      if ((send_result != response.size()) && (_cb_on_error)) {
+        _cb_on_error(endpoint, socket_get_last_error());
+      }
+    }
+  }
+
 }
