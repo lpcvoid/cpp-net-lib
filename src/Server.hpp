@@ -40,6 +40,7 @@ namespace netlib {
         std::error_condition handle_client(client_endpoint endpoint);
       public:
         server();
+        virtual ~server();
         std::error_condition create(const std::string& bind_host,
                                     const std::variant<std::string,uint16_t>& service,
                                     AddressFamily address_family,

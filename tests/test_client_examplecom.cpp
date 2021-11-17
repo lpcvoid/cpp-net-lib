@@ -60,3 +60,49 @@ TEST_CASE("Client example.com") {
   std::string website(recv_result.first.begin(), recv_result.first.end());
   CHECK_NE(website.find("HTTP Version Not Supported"), std::string::npos); // 1.1 is way too old
 }
+
+TEST_CASE("test") {
+  netlib::client client;
+  auto connect_future = client.connect_async("example.com",
+                                             static_cast<uint16_t>(80),
+                                             netlib::AddressFamily::IPv4,
+                                             netlib::AddressProtocol::TCP,
+                                             10000ms);
+
+  while (connect_future.wait_for(10ms) != std::future_status::ready) {
+    // do something cool while waiting for connect to finish
+  }
+
+  std::error_condition connect_error = connect_future.get();
+  if (connect_error) {
+    std::cerr << "Connection failed, error: " << connect_error.message() << std::endl;
+    return;
+  }
+
+  auto send_future = client.send_async({basic_get.begin(), basic_get.end()},1000ms);
+
+  while (send_future.wait_for(10ms) != std::future_status::ready) {
+    // do something cool while waiting for send to finish
+  }
+
+  std::pair<std::size_t, std::error_condition> send_result = send_future.get();
+
+  if (send_result.second) {
+    std::cerr << "Send error, error: " << send_result.second.message() << std::endl;
+    return;
+  }
+
+  std::cout << "We sent " << send_result.first << " bytes!" << std::endl;
+
+  auto recv_future = client.recv_async(2048, 3000ms);
+  while (recv_future.wait_for(10ms) != std::future_status::ready) {
+    // do something cool while waiting for data to come in
+  }
+
+  auto recv_result = recv_future.get();
+
+  std::cout << "We got " << recv_result.first.size() << " bytes!" << std::endl;
+
+  std::string website(recv_result.first.begin(), recv_result.first.end());
+  std::cout << website << std::endl;
+}

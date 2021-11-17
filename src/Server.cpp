@@ -35,7 +35,7 @@ std::error_condition netlib::server::create(const std::string &bind_host,
     std::error_condition s_create_error = _listener_sock->create(res_addrinfo->ai_family, res_addrinfo->ai_socktype, res_addrinfo->ai_protocol);
     if (s_create_error) {
       close_and_free();
-      return s_create_error;
+      continue;
     }
     _listener_sock->set_nonblocking(true);
 
@@ -50,33 +50,17 @@ std::error_condition netlib::server::create(const std::string &bind_host,
         close_and_free();
         continue;
       }
-
-      _accept_thread = std::thread([this](){
-        client_endpoint new_endpoint;
-        while (_server_active) {
-          std::this_thread::sleep_for(std::chrono::milliseconds(10));
-          new_endpoint.addr_len = sizeof(addrinfo);
-          int32_t status = ::accept(_listener_sock->get_raw().value(), new_endpoint.addr, &new_endpoint.addr_len);
-          if (status > 0) {
-            new_endpoint.socket.set_raw(status);
-            {
-              std::lock_guard<std::mutex> lock(_mutex);
-              _clients.push_back(new_endpoint);
-            }
-            if (_cb_onconnect) {
-              _cb_onconnect(new_endpoint);
-            }
-          }
-        }
-      });
     }
-
-    _processor_thread = std::thread(&server::processing_func, this);
     //all went well
     break;
   }
-
-  return {};
+  if (_listener_sock) {
+    _server_active = true;
+    _accept_thread = std::thread(&server::accept_func, this);
+    _processor_thread = std::thread(&server::processing_func, this);
+    return {};
+  }
+  return socket_get_last_error();
 }
 
 std::size_t netlib::server::get_client_count() {
@@ -128,12 +112,36 @@ void netlib::server::processing_func() {
 }
 
 void netlib::server::accept_func() {
-
+  client_endpoint new_endpoint;
+  while (_server_active) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    new_endpoint.addr_len = sizeof(addrinfo);
+    int32_t status = ::accept(_listener_sock->get_raw().value(), new_endpoint.addr, &new_endpoint.addr_len);
+    if (status > 0) {
+      new_endpoint.socket.set_raw(status);
+      {
+        std::lock_guard<std::mutex> lock(_mutex);
+        _clients.push_back(new_endpoint);
+      }
+      if (_cb_onconnect) {
+        std::vector<uint8_t> greeting = _cb_onconnect(new_endpoint);
+        if (!greeting.empty()) {
+          int32_t send_result = ::send(new_endpoint.socket.get_raw().value(), greeting.data(), greeting.size(), 0);
+          if ((send_result != greeting.size()) && (_cb_on_error)) {
+            _cb_on_error(new_endpoint, socket_get_last_error());
+          }
+        }
+      }
+    }
+  }
 }
 void netlib::server::close() {
   _server_active = false;
   if (_accept_thread.joinable()) {
     _accept_thread.join();
+  }
+  if (_processor_thread.joinable()){
+    _processor_thread.join();
   }
   if (_listener_sock.has_value()) {
     _listener_sock->close();
@@ -157,4 +165,7 @@ netlib::server::handle_client(netlib::client_endpoint endpoint) {
     }
   }
 
+}
+netlib::server::~server() {
+  close();
 }

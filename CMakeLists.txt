@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(getcat)
+project(netlib)
 set(CMAKE_CXX_STANDARD 20)
 
 set(NETLIB_SRC src/Socket.hpp src/Error.hpp src/Client.cpp src/Client.hpp
