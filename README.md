@@ -46,22 +46,18 @@ if (connect_result) {
 }
 
 static const std::string basic_get = R"(GET / HTTP/1.1\r\nHost: example.com\r\n\r\n)";
-
 std::pair<std::size_t, std::error_condition> send_res = 
                             client.send({basic_get.begin(), basic_get.end()}, 1000ms);
-
 if (send_res.second) {
     std::cerr << "Sending failed! Error: " << send_res.second.message() << std::endl;
     return;
 }
 
 std::pair<std::vector<uint8_t>, std::error_condition>  recv_res = client.recv(2048, 3000ms);
-
 if (recv_res.second) {
     std::cerr << "Recv failed! Error: " << recv_res.second.message() << std::endl;
     return;
 }
-
 std::string website(recv_res.first.begin(), recv_res.first.end());
 std::cout << website << std::endl;
 ```
@@ -74,22 +70,33 @@ auto connect_future = client.connect_async("example.com",
                                          netlib::AddressFamily::IPv4,
                                          netlib::AddressProtocol::TCP,
                                          10000ms);
+while (connect_future.wait_for(10ms) != std::future_status::ready) {
+    // do something cool while waiting for connect to finish
+}
+std::error_condition connect_error = connect_future.get();
+if (connect_error) {
+    std::cerr << "Connection failed, error: " << connect_error.message() << std::endl;
+    return;
+}
 
-while (connect_future.wait_for(10ms) != std::future_status::ready) {}
+static const std::string basic_get = R"(GET / HTTP/1.1\r\nHost: example.com\r\n\r\n)";
 auto send_future = client.send_async({basic_get.begin(), basic_get.end()},1000ms);
-
 while (send_future.wait_for(10ms) != std::future_status::ready) {
     // do something cool while waiting for send to finish
 }
+std::pair<std::size_t, std::error_condition> send_result = send_future.get();
+if (send_result.second) {
+    std::cerr << "Send error, error: " << send_result.second.message() << std::endl;
+    return;
+}
+std::cout << "We sent " << send_result.first << " bytes!" << std::endl;
 
 auto recv_future = client.recv_async(2048, 3000ms);
-
 while (recv_future.wait_for(10ms) != std::future_status::ready) {
     // do something cool while waiting for data to come in
 }
-
 auto recv_result = recv_future.get();
-
+std::cout << "We got " << recv_result.first.size() << " bytes!" << std::endl;
 std::string website(recv_result.first.begin(), recv_result.first.end());
 std::cout << website << std::endl;
 ```
