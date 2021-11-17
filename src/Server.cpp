@@ -24,10 +24,7 @@ std::error_condition netlib::server::create(const std::string &bind_host,
   }
 
   auto close_and_free = [&](){
-    if (_listener_sock.has_value()) {
-      _listener_sock->close();
-      _listener_sock.reset();
-    }
+    this->close();
     freeaddrinfo(addrinfo_result.first);
   };
 
@@ -58,7 +55,10 @@ std::error_condition netlib::server::create(const std::string &bind_host,
           int32_t status = ::accept(_listener_sock->get_raw().value(), new_endpoint.addr, &new_endpoint.addr_len);
           if (status > 0) {
             new_endpoint.socket.set_raw(status);
-            _clients.push_back(new_endpoint);
+            {
+              std::lock_guard<std::mutex> lock(_mutex);
+              _clients.push_back(new_endpoint);
+            }
             if (_cb_onconnect) {
               _cb_onconnect(new_endpoint);
             }
