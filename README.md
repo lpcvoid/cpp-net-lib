@@ -100,5 +100,29 @@ std::cout << "We got " << recv_result.first.size() << " bytes!" << std::endl;
 std::string website(recv_result.first.begin(), recv_result.first.end());
 std::cout << website << std::endl;
 ```
+#### Echo server
 
+This code sample creates a TCP server on localhost:1337, which will echo whatever you send to it.
 
+```c++
+netlib::server server;
+server.register_callback_on_connect(
+  [&](netlib::client_endpoint endpoint) -> std::vector<uint8_t> {
+    std::string ip = netlib::endpoint_accessor::ip_to_string(endpoint.addr, endpoint.addr_len).value();  
+    std::cout << "Client connected! IP: " << ip << std::endl;
+    return {};
+  });
+server.register_callback_on_recv(
+  [&](netlib::client_endpoint endpoint,
+      const std::vector<uint8_t> &data) -> std::vector<uint8_t> {
+    std::cout << "Client sent some data, echoing it back!" << std::endl;
+    return data;
+  });
+std::error_condition server_create_res = server.create("localhost", 
+                                                       static_cast<uint16_t>(1337), 
+                                                       netlib::AddressFamily::IPv4,
+                                                       netlib::AddressProtocol::TCP);
+if (server_create_res) {
+    std::cerr << "Error initializing server: " << server_create_res.message() << std::endl;
+}
+```
