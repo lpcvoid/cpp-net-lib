@@ -8,5 +8,6 @@ set(NETLIB_SRC src/Socket.hpp src/Error.hpp src/Client.cpp src/Client.hpp
 # doctest
 include_directories(3rdparty)
 add_subdirectory(tests)
+add_subdirectory(examples)
 
 add_library(netcpp STATIC ${NETLIB_SRC})
