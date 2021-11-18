@@ -12,16 +12,12 @@ namespace netlib {
     class client {
     protected:
         std::optional<netlib::Socket> _socket;
-
+        addrinfo* _endpoint_addr = nullptr;
         std::pair<std::error_condition, std::chrono::milliseconds>  wait_for_operation(socket_t sock, OperationClass op_class, std::chrono::milliseconds timeout);
-        /*
-        std::string _host;
-        uint16_t _port = 0;
-        netlib::AddressFamily _address_family = netlib::AddressFamily::IPv4;
-        netlib::AddressProtocol _address_protocol = netlib::AddressProtocol::TCP;
-         */
     public:
         client();
+        client(netlib::Socket sock, addrinfo* endpoint);
+        virtual ~client();
         std::error_condition connect(const std::string& host,
                                      const std::variant<std::string, uint16_t>& service,
                                      AddressFamily address_family,
@@ -43,5 +39,6 @@ namespace netlib {
         std::error_condition disconnect();
         bool is_connected();
         [[nodiscard]] std::optional<netlib::Socket> get_socket() const;
+        std::optional<std::string> get_ip_addr();
     };
 }// namespace netlib

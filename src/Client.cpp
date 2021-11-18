@@ -3,9 +3,20 @@
 //
 
 #include "Client.hpp"
+#include "endpoint_accessor.hpp"
 #include "service_resolver.hpp"
+#include <cstring>
 
 netlib::client::client() {
+}
+
+netlib::client::client(netlib::Socket sock, addrinfo *endpoint) {
+  _socket = sock;
+  _endpoint_addr = endpoint;
+}
+
+netlib::client::~client() {
+  disconnect();
 }
 
 std::pair<std::size_t, std::error_condition> netlib::client::send(const std::vector<uint8_t> &data, std::optional<std::chrono::milliseconds> timeout) {
@@ -97,10 +108,10 @@ std::error_condition netlib::client::connect(const std::string &host,
             global_connect_error = connect_error.first;
             continue;
         }
+        _endpoint_addr = res_addrinfo;
         _socket = sock;
         break;
     }
-    freeaddrinfo(addrinfo_result.first);
     if (_socket) {
         return {};
     }
@@ -132,6 +143,10 @@ std::error_condition netlib::client::disconnect() {
     }
     _socket->close();
     _socket.reset();
+
+    if (_endpoint_addr) {
+      freeaddrinfo(_endpoint_addr);
+    }
     return {};
 }
 bool netlib::client::is_connected() {
@@ -168,3 +183,6 @@ std::pair<std::error_condition, std::chrono::milliseconds> netlib::client::wait_
     }
 }
 
+std::optional<std::string> netlib::client::get_ip_addr() {
+  return endpoint_accessor::ip_to_string(_endpoint_addr);
+}
