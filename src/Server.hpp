@@ -14,7 +14,7 @@ namespace netlib {
 
     struct client_endpoint {
       netlib::Socket socket;
-      sockaddr* addr{};
+      sockaddr addr{};
       socklen_t addr_len = sizeof(sockaddr);
     };
 

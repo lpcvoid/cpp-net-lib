@@ -9,6 +9,10 @@
 
 netlib::server::server() {}
 
+netlib::server::~server() {
+  close();
+}
+
 std::error_condition netlib::server::create(const std::string &bind_host,
                        const std::variant<std::string, uint16_t> &service,
                                             AddressFamily address_family,
@@ -38,6 +42,7 @@ std::error_condition netlib::server::create(const std::string &bind_host,
       continue;
     }
     _listener_sock->set_nonblocking(true);
+    _listener_sock->set_reuseaddr(true);
 
     if (address_protocol == AddressProtocol::TCP) {
       int32_t res = ::bind(_listener_sock->get_raw().value(), res_addrinfo->ai_addr, res_addrinfo->ai_addrlen);
@@ -116,9 +121,10 @@ void netlib::server::accept_func() {
   while (_server_active) {
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
     new_endpoint.addr_len = sizeof(addrinfo);
-    int32_t status = ::accept(_listener_sock->get_raw().value(), new_endpoint.addr, &new_endpoint.addr_len);
+    int32_t status = ::accept(_listener_sock->get_raw().value(), &new_endpoint.addr, &new_endpoint.addr_len);
     if (status > 0) {
       new_endpoint.socket.set_raw(status);
+      new_endpoint.socket.set_nonblocking(true);
       {
         std::lock_guard<std::mutex> lock(_mutex);
         _clients.push_back(new_endpoint);
@@ -152,8 +158,20 @@ std::error_condition
 netlib::server::handle_client(netlib::client_endpoint endpoint) {
   std::vector<uint8_t> total_buffer;
   std::array<uint8_t, 2048> buffer{};
-  while (int32_t recv_res = ::recv(endpoint.socket.get_raw().value(), buffer.data(), buffer.size(), MSG_WAITALL) > 0) {
+  int32_t recv_res = 0;
+  while ((recv_res= ::recv(endpoint.socket.get_raw().value(), buffer.data(), buffer.size(), MSG_WAITALL)) > 0) {
     total_buffer.insert(total_buffer.end(), buffer.begin(), buffer.begin() + recv_res);
+  }
+  if (recv_res == 0){
+    if (_cb_on_error) {
+      _cb_on_error(endpoint, std::errc::connection_aborted);
+    }
+    std::lock_guard<std::mutex> lock(_mutex);
+    //the remove_if-> erase idiom is perhaps my most hated part about std containers
+    _clients.erase(
+        std::remove_if(_clients.begin(), _clients.end(), [&](const client_endpoint& ce) {
+          return ce.socket.get_raw() == endpoint.socket.get_raw();
+        }),_clients.end());
   }
   if (_cb_on_recv) {
     std::vector<uint8_t> response = _cb_on_recv(endpoint, total_buffer);
@@ -164,8 +182,5 @@ netlib::server::handle_client(netlib::client_endpoint endpoint) {
       }
     }
   }
-
-}
-netlib::server::~server() {
-  close();
+  return {};
 }
