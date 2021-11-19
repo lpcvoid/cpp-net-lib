@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Socket.hpp"
+#include "socket.hpp"
 #include <atomic>
 #include <functional>
 #include <mutex>
@@ -13,7 +13,7 @@
 namespace netlib {
 
     struct client_endpoint {
-      netlib::Socket socket;
+      netlib::socket socket;
       sockaddr addr{};
       socklen_t addr_len = sizeof(sockaddr);
     };
@@ -25,7 +25,7 @@ namespace netlib {
 
     class server {
     private:
-        std::optional<netlib::Socket> _listener_sock;
+        std::optional<netlib::socket> _listener_sock;
         int32_t _accept_queue_size = 10;
         std::vector<client_endpoint> _clients;
         std::mutex _mutex;

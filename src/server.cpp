@@ -2,7 +2,7 @@
 // Created by lpcvoid on 14/11/2021.
 //
 
-#include "Server.hpp"
+#include "server.hpp"
 #include "service_resolver.hpp"
 #include <cassert>
 #include <csignal>
@@ -35,7 +35,7 @@ std::error_condition netlib::server::create(const std::string &bind_host,
   };
 
   for (addrinfo* res_addrinfo = addrinfo_result.first; res_addrinfo != nullptr; res_addrinfo = res_addrinfo->ai_next) {
-    _listener_sock = netlib::Socket();
+    _listener_sock = netlib::socket();
     std::error_condition s_create_error = _listener_sock->create(res_addrinfo->ai_family, res_addrinfo->ai_socktype, res_addrinfo->ai_protocol);
     if (s_create_error) {
       close_and_free();

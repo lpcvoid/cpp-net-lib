@@ -1,6 +1,6 @@
-#include "../src/Client.hpp"
-#include "../src/Server.hpp"
+#include "../src/client.hpp"
 #include "../src/endpoint_accessor.hpp"
+#include "../src/server.hpp"
 #include <csignal>
 #include <iostream>
 

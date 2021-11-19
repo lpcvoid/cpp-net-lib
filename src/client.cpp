@@ -2,7 +2,7 @@
 // Created by lpcvoid on 11/11/2021.
 //
 
-#include "Client.hpp"
+#include "client.hpp"
 #include "endpoint_accessor.hpp"
 #include "service_resolver.hpp"
 #include <cstring>
@@ -10,7 +10,7 @@
 netlib::client::client() {
 }
 
-netlib::client::client(netlib::Socket sock, addrinfo *endpoint) {
+netlib::client::client(netlib::socket sock, addrinfo *endpoint) {
   _socket = sock;
   _endpoint_addr = endpoint;
 }
@@ -87,7 +87,7 @@ std::error_condition netlib::client::connect(const std::string &host,
     }
     std::error_condition global_connect_error {};
     for (addrinfo* res_addrinfo = addrinfo_result.first; res_addrinfo != nullptr; res_addrinfo = res_addrinfo->ai_next) {
-        auto sock = netlib::Socket();
+        auto sock = netlib::socket();
         std::error_condition s_create_error = sock.create(res_addrinfo->ai_family, res_addrinfo->ai_socktype, res_addrinfo->ai_protocol);
         if (s_create_error) {
             freeaddrinfo(addrinfo_result.first);
@@ -133,7 +133,7 @@ std::future<std::pair<std::vector<uint8_t>, std::error_condition>> netlib::clien
     return std::async(std::launch::async, &netlib::client::recv, this, byte_count, timeout);
 }
 
-std::optional<netlib::Socket> netlib::client::get_socket() const {
+std::optional<netlib::socket> netlib::client::get_socket() const {
     return _socket;
 }
 

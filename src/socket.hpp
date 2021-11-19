@@ -22,7 +22,7 @@ using socklen_t = int32_t;
 using ssize_t = signed long long int;
 #else
 //headers
-#include "Error.hpp"
+#include "error.hpp"
 #include <arpa/inet.h>
 #include <chrono>
 #include <fcntl.h>
@@ -43,7 +43,7 @@ namespace netlib {
     enum class AddressProtocol {TCP = SOCK_STREAM, UDP = SOCK_DGRAM};
     enum class OperationClass {read = 1, write = 2, both = 3};
 
-    class Socket {
+    class socket {
     private:
         std::optional<socket_t> _socket = std::nullopt;
 
@@ -60,7 +60,7 @@ namespace netlib {
 #endif
         }
     public:
-        Socket() = default;
+      socket() = default;
 
         bool is_valid() {
             return _socket.has_value();

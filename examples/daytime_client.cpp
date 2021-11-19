@@ -1,5 +1,5 @@
-#include "../src/Client.hpp"
-#include "../src/Server.hpp"
+#include "../src/client.hpp"
+#include "../src/server.hpp"
 #include <csignal>
 #include <iostream>
 
@@ -46,7 +46,6 @@ int main(int argc, char** argv) {
     } else {
       std::string daytime_string(daytime_res.first.begin(), daytime_res.first.end());
       std::cout << daytime_string << std::endl;
-
       exit(EXIT_SUCCESS);
     }
 

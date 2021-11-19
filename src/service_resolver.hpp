@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Socket.hpp"
+#include "socket.hpp"
 #include <netdb.h>
 #include <system_error>
 #include <utility>
