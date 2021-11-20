@@ -1,6 +1,7 @@
 #pragma once
 
 #include "socket.hpp"
+#include "thread_pool.hpp"
 #include <atomic>
 #include <functional>
 #include <mutex>
@@ -35,6 +36,7 @@ namespace netlib {
         callback_error_t _cb_on_error{};
         std::thread _accept_thread;
         std::thread _processor_thread;
+        netlib::thread_pool _thread_pool;
         void processing_func();
         void accept_func();
         std::error_condition handle_client(client_endpoint endpoint);

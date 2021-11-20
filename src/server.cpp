@@ -105,11 +105,12 @@ void netlib::server::processing_func() {
           }
         }
       }
-      //TODO: remove this later on
       assert(index == select_res);
-      //TODO: threadpool, don't spawn a thread each time
+      //add callback tasks to threadpool for processing
       for (auto& client_to_recv : client_refs) {
-          std::thread(&server::handle_client, this, client_to_recv).detach();
+        _thread_pool.add_task([&](client_endpoint ce){
+          this->handle_client(ce);
+        }, client_to_recv);
       }
 
     }

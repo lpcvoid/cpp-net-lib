@@ -1,4 +1,4 @@
-set(EXAMPLE_SOURCES echo_server.cpp daytime_client.cpp)
+set(EXAMPLE_SOURCES echo_server.cpp daytime_client.cpp threadpool.cpp)
 
 foreach (examplesource ${EXAMPLE_SOURCES})
     string(REPLACE ".cpp" "" examplename ${examplesource})
