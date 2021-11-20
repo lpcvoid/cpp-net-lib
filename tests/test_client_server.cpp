@@ -1,8 +1,6 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "../3rdparty/doctest/doctest/doctest.h"
-#include "../src/client.hpp"
-#include "../src/endpoint_accessor.hpp"
-#include "../src/server.hpp"
+#include "../src/netlib.hpp"
 
 using namespace std::chrono_literals;
 

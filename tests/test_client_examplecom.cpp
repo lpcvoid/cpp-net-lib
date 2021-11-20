@@ -1,6 +1,6 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "../3rdparty/doctest/doctest/doctest.h"
-#include "../src/client.hpp"
+#include "../src/netlib.hpp"
 
 static const std::string basic_get = R"(GET / HTTP/1.1\r\nHost: example.com\r\n\r\n)";
 

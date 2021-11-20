@@ -4,7 +4,7 @@
 
     This lib is under heavy development and not really ready for use yet.
 
-Modern, compact and cross plattform C++ network/sockets library. 
+Modern, header-only, compact and cross plattform C++ network/sockets library. 
 Don't mind the crappy name, I suck at naming things.
 
 ### Why?
@@ -18,7 +18,9 @@ after trying ASIO, which I found way to heavy for my tastes.
 ### How?
 
 You can just add this repo as a git submodule, which at this point is
-probably (IMO) the best way to handle C++ dependencies. 
+probably (IMO) the best way to handle C++ dependencies. Just `#include "netlib.hpp"`
+somewhere.
+
 
 ### Short introduction
 

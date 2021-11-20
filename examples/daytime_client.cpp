@@ -1,5 +1,4 @@
-#include "../src/client.hpp"
-#include "../src/server.hpp"
+#include "../src/netlib.hpp"
 #include <csignal>
 #include <iostream>
 
