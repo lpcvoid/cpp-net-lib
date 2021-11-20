@@ -123,14 +123,23 @@ std::future<std::error_condition> netlib::client::connect_async(const std::strin
                                                                       netlib::AddressFamily address_family,
                                                                       netlib::AddressProtocol address_protocol,
                                                                       std::chrono::milliseconds timeout) {
-    return std::async(std::launch::async, &netlib::client::connect, this,
-                      host, service, address_family, address_protocol, timeout);
+  return _thread_pool.add_task([&](const std::string &host,
+                                   const std::variant<std::string, uint16_t>& service,
+                                   netlib::AddressFamily address_family,
+                                   netlib::AddressProtocol address_protocol,
+                                   std::chrono::milliseconds timeout){
+    return this->connect(host, service, address_family, address_protocol, timeout);
+  }, host, service, address_family, address_protocol, timeout);
 }
 std::future<std::pair<std::size_t, std::error_condition>> netlib::client::send_async(const std::vector<uint8_t> &data, std::optional<std::chrono::milliseconds> timeout) {
-    return std::async(std::launch::async, &netlib::client::send, this, data, timeout);
+  return _thread_pool.add_task([&](const std::vector<uint8_t> &data, std::optional<std::chrono::milliseconds> timeout){
+    return this->send(data, timeout);
+    }, data, timeout);
 }
 std::future<std::pair<std::vector<uint8_t>, std::error_condition>> netlib::client::recv_async(std::size_t byte_count, std::optional<std::chrono::milliseconds> timeout) {
-    return std::async(std::launch::async, &netlib::client::recv, this, byte_count, timeout);
+  return _thread_pool.add_task([&](std::size_t byte_count, std::optional<std::chrono::milliseconds> timeout){
+    return this->recv(byte_count, timeout);
+  }, byte_count, timeout);
 }
 
 std::optional<netlib::socket> netlib::client::get_socket() const {

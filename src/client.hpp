@@ -1,5 +1,6 @@
 #pragma once
 #include "socket.hpp"
+#include "thread_pool.hpp"
 #include <future>
 #include <optional>
 #include <variant>
@@ -14,7 +15,8 @@ namespace netlib {
         std::optional<netlib::socket> _socket;
         addrinfo* _endpoint_addr = nullptr;
         std::pair<std::error_condition, std::chrono::milliseconds>  wait_for_operation(socket_t sock, OperationClass op_class, std::chrono::milliseconds timeout);
-    public:
+        netlib::thread_pool _thread_pool = netlib::thread_pool::create<1,1>();
+      public:
         client();
         client(netlib::socket sock, addrinfo* endpoint);
         virtual ~client();

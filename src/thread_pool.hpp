@@ -46,6 +46,13 @@ namespace netlib {
         add_thread();
       }
     }
+
+  private:
+    thread_pool(std::size_t start_threads, std::size_t max_threads) {
+      _active = true;
+      _max_threads = max_threads;
+      create_threads(start_threads);
+    }
   public:
     thread_pool(){
         _active = true;
@@ -56,13 +63,13 @@ namespace netlib {
     //only way to influence the max threads is via template
     //instantiation, since we can assert correctness at compile time
     template<typename std::size_t StartT, typename std::size_t MaxT>
-    explicit thread_pool() {
+    static thread_pool create() {
       static_assert(MaxT > 0, "Max threads shall be positive");
       static_assert((StartT <= MaxT), "Max threads shall be higher or equal to the starting thread count");
-      _active = true;
-      _max_threads = MaxT;
-      create_threads(StartT);
+      return {StartT, MaxT};
     }
+
+
 
     ~thread_pool(){
       _active = false;
