@@ -20,10 +20,23 @@ after trying ASIO, which I found way to heavy for my tastes.
 You can just add this repo as a git submodule, which at this point is
 probably (IMO) the best way to handle C++ dependencies. 
 
-### Examples
+### Short introduction
 
-The library consists of only two user facing classes, `netlib::client` 
-and `netlib::server`.
+The library consists of only a few facing classes:
+
+`netlib::client` is a network client implementation that offers async and blocking capabilities. Async is done efficiently via a threadpool.
+ 
+`netlib::server` is a network server which can handle client requests in an easy manner via callbacks. It uses a threadpool internally. 
+See the examples for some usecases, it's really self explaining.
+
+`netlib::endpoint_accessor` is used to retrieve information like IP and port from an incoming client connection. See examples.
+
+`netlib::thread_pool` is the threadpool implementation used throughout this lib. You can use it for other stuff too, 
+if you like.
+
+`netlib::socket` is a platform independent socket wrapper over the POSIX socket api.
+
+### Examples
 
 In all of these examples, I assume you have `using namespace std::chrono_literals` 
 somewhere. If you don't want to "pollute" the `std` namespace, you need to
@@ -102,7 +115,8 @@ std::cout << website << std::endl;
 ```
 #### Echo server
 
-This code sample creates a TCP server on localhost:1337, which will echo whatever you send to it.
+This code sample creates a TCP server on localhost:1337, which will echo whatever you send to it. Each of the callbacks
+will be executed by a random thread internally. 
 
 ```c++
 netlib::server server;

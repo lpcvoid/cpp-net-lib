@@ -69,8 +69,6 @@ namespace netlib {
       return {StartT, MaxT};
     }
 
-
-
     ~thread_pool(){
       _active = false;
       _cv_new_job.notify_all();
