@@ -22,7 +22,7 @@ probably (IMO) the best way to handle C++ dependencies.
 
 ### Short introduction
 
-The library consists of only a few facing classes:
+The library consists of only a few user facing classes:
 
 `netlib::client` is a network client implementation that offers async and blocking capabilities. Async is done efficiently via a threadpool.
  
