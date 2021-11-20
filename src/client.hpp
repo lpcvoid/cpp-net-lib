@@ -96,6 +96,7 @@ namespace netlib {
               global_connect_error = connect_error.first;
               continue;
             }
+
             _endpoint_addr = res_addrinfo;
             _socket = sock;
             break;

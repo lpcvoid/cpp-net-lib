@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
   signal(SIGINT, exit_handler);
 
   uint16_t port = 13;
-  std::string time_host = "time-b-b.nist.gov";
+  std::string time_host = "time.nist.gov"; //https://tf.nist.gov/tf-cgi/servers.cgi#
   if (argc == 3) {
     time_host = argv[1];
     port = std::atol(argv[2]);
