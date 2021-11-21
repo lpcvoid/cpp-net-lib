@@ -38,6 +38,9 @@ if you like.
 
 `netlib::socket` is a platform independent socket wrapper over the POSIX socket api.
 
+`netlib::server_response` is a struct that you can return in your server callbacks, which instructs the server how to handle your
+response. You can pass it some data to relay to clients, or instruct server to terminate the connection (after sending data, if any).
+
 ### Examples
 
 In all of these examples, I assume you have `using namespace std::chrono_literals` 
@@ -120,19 +123,22 @@ std::cout << website << std::endl;
 This code sample creates a TCP server on localhost:1337, which will echo whatever you send to it. Each of the callbacks
 will be executed by a random thread internally. 
 
+You may want to disconnect each client after they get their echo - this can be done by setting `.terminate` to `true` in
+the `server_response` struct you return from within your callback. Leaving the `answer` vector empty will not send any data.
+
 ```c++
 netlib::server server;
 server.register_callback_on_connect(
-  [&](netlib::client_endpoint endpoint) -> std::vector<uint8_t> {
-    std::string ip = netlib::endpoint_accessor::ip_to_string(endpoint.addr, endpoint.addr_len).value();  
+  [&](netlib::client_endpoint endpoint) -> netlib::server_response {
+    std::string ip = netlib::endpoint_accessor::ip_to_string(endpoint.addr, endpoint.addr_len).value();
     std::cout << "Client connected! IP: " << ip << std::endl;
     return {};
   });
 server.register_callback_on_recv(
   [&](netlib::client_endpoint endpoint,
-      const std::vector<uint8_t> &data) -> std::vector<uint8_t> {
+      const std::vector<uint8_t> &data) -> netlib::server_response{
     std::cout << "Client sent some data, echoing it back!" << std::endl;
-    return data;
+    return {.answer = data};
   });
 std::error_condition server_create_res = server.create("localhost", 
                                                        static_cast<uint16_t>(1337), 

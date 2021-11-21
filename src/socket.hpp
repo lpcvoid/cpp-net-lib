@@ -130,6 +130,7 @@ namespace netlib {
 #else
                 ::close(_socket.value());
 #endif
+                _socket.reset();
             }
         }
     };

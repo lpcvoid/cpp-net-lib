@@ -23,16 +23,16 @@ int main(int argc, char** argv) {
 
   netlib::server server;
   server.register_callback_on_connect(
-      [&](netlib::client_endpoint endpoint) -> std::vector<uint8_t> {
+      [&](netlib::client_endpoint endpoint) -> netlib::server_response {
         std::string ip = netlib::endpoint_accessor::ip_to_string(endpoint.addr, endpoint.addr_len).value();
         std::cout << "Client connected! IP: " << ip << std::endl;
         return {};
       });
   server.register_callback_on_recv(
       [&](netlib::client_endpoint endpoint,
-          const std::vector<uint8_t> &data) -> std::vector<uint8_t> {
+          const std::vector<uint8_t> &data) -> netlib::server_response{
         std::cout << "Client sent some data, echoing it back!" << std::endl;
-        return data;
+        return {.answer = data};
       });
   std::error_condition server_create_res = server.create(bind_host,
                                                          static_cast<uint16_t>(port),

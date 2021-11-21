@@ -21,8 +21,13 @@ namespace netlib {
       socklen_t addr_len = sizeof(sockaddr);
     };
 
-    using callback_connect_t = std::function<std::vector<uint8_t>(client_endpoint)>;
-    using callback_recv_t = std::function<std::vector<uint8_t>(client_endpoint, std::vector<uint8_t>)>;
+    struct server_response {
+      std::vector<uint8_t> answer{};
+      bool terminate = false;
+    };
+
+    using callback_connect_t = std::function<server_response(client_endpoint)>;
+    using callback_recv_t = std::function<server_response(client_endpoint, std::vector<uint8_t>)>;
     using callback_error_t = std::function<void(client_endpoint, std::error_condition)>;
 
     class server {
@@ -92,18 +97,24 @@ namespace netlib {
             if (status > 0) {
               new_endpoint.socket.set_raw(status);
               new_endpoint.socket.set_nonblocking(true);
-              {
-                std::lock_guard<std::mutex> lock(_mutex);
-                _clients.push_back(new_endpoint);
-              }
               if (_cb_onconnect) {
-                std::vector<uint8_t> greeting = _cb_onconnect(new_endpoint);
-                if (!greeting.empty()) {
-                  ssize_t send_result = ::send(new_endpoint.socket.get_raw().value(), greeting.data(), greeting.size(), 0);
-                  if ((send_result != greeting.size()) && (_cb_on_error)) {
+                netlib::server_response greeting = _cb_onconnect(new_endpoint);
+                if (!greeting.answer.empty()) {
+                  ssize_t send_result = ::send(new_endpoint.socket.get_raw().value(),
+                                               greeting.answer.data(),
+                                               greeting.answer.size(),
+                                               0);
+                  if ((send_result != greeting.answer.size()) && (_cb_on_error)) {
                     _cb_on_error(new_endpoint, socket_get_last_error());
                   }
                 }
+                if (greeting.terminate) {
+                  new_endpoint.socket.close();
+                }
+              }
+              if (new_endpoint.socket.is_valid()) {
+                std::lock_guard<std::mutex> lock(_mutex);
+                _clients.push_back(new_endpoint);
               }
             }
           }
@@ -120,23 +131,35 @@ namespace netlib {
             if (_cb_on_error) {
               _cb_on_error(endpoint, std::errc::connection_aborted);
             }
-            std::lock_guard<std::mutex> lock(_mutex);
-            //the remove_if-> erase idiom is perhaps my most hated part about std containers
-            _clients.erase(
-                std::remove_if(_clients.begin(), _clients.end(), [&](const client_endpoint& ce) {
-                  return ce.socket.get_raw() == endpoint.socket.get_raw();
-                }),_clients.end());
+            remove_client(endpoint.socket.get_raw().value());
           }
           if (_cb_on_recv) {
-            std::vector<uint8_t> response = _cb_on_recv(endpoint, total_buffer);
-            if (!response.empty()) {
-              ssize_t send_result = ::send(endpoint.socket.get_raw().value(), response.data(), response.size(), 0);
-              if ((send_result != response.size()) && (_cb_on_error)) {
+            netlib::server_response response = _cb_on_recv(endpoint, total_buffer);
+            if (!response.answer.empty()) {
+              ssize_t send_result = ::send(endpoint.socket.get_raw().value(),
+                                           response.answer.data(),
+                                           response.answer.size(),
+                                           0);
+              if ((send_result != response.answer.size()) && (_cb_on_error)) {
                 _cb_on_error(endpoint, socket_get_last_error());
               }
             }
+            if (response.terminate) {
+              endpoint.socket.close();
+              remove_client(endpoint.socket.get_raw().value());
+            }
+
           }
           return {};
+        }
+
+        bool remove_client(socket_t socket_id) {
+          //the remove_if-> erase idiom is perhaps my most hated part about std containers
+          std::lock_guard<std::mutex> lock(_mutex);
+          return _clients.erase(
+              std::remove_if(_clients.begin(), _clients.end(), [&](const client_endpoint& ce) {
+                return ce.socket.get_raw() == socket_id;
+              }),_clients.end()) != _clients.end();
         }
 
       public:
@@ -174,12 +197,12 @@ namespace netlib {
             _listener_sock->set_nonblocking(true);
             _listener_sock->set_reuseaddr(true);
 
+            int32_t res = ::bind(_listener_sock->get_raw().value(), res_addrinfo->ai_addr, res_addrinfo->ai_addrlen);
+            if (res < 0) {
+              close_and_free();
+              continue;
+            }
             if (address_protocol == AddressProtocol::TCP) {
-              int32_t res = ::bind(_listener_sock->get_raw().value(), res_addrinfo->ai_addr, res_addrinfo->ai_addrlen);
-              if (res < 0) {
-                close_and_free();
-                continue;
-              }
               res = ::listen(_listener_sock->get_raw().value(), _accept_queue_size);
               if (res < 0) {
                 close_and_free();

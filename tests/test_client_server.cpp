@@ -25,17 +25,17 @@ TEST_CASE("Test server with callbacks") {
   bool client_has_sent = false;
 
   server.register_callback_on_connect(
-      [&](netlib::client_endpoint endpoint) -> std::vector<uint8_t> {
+      [&](netlib::client_endpoint endpoint) -> netlib::server_response {
         client_was_connected = true;
-        return {hello_msg.begin(), hello_msg.end()};
+        return {.answer = {hello_msg.begin(), hello_msg.end()}};
       });
 
   // std::vector<uint8_t>(client_endpoint, std::vector<uint8_t>)
   server.register_callback_on_recv(
       [&](netlib::client_endpoint endpoint,
-          const std::vector<uint8_t> &data) -> std::vector<uint8_t> {
+          const std::vector<uint8_t> &data) -> netlib::server_response {
         client_has_sent = true;
-        return server_response_message;
+        return {.answer = server_response_message};
       });
 
   std::error_condition server_create_res =

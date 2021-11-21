@@ -12,7 +12,7 @@ TEST_CASE("Test disconnect handling") {
   bool client_was_disconnected = false;
 
   server.register_callback_on_connect(
-      [&](netlib::client_endpoint endpoint) -> std::vector<uint8_t> {
+      [&](netlib::client_endpoint endpoint) -> netlib::server_response {
         client_was_connected = true;
         return {};
       });
