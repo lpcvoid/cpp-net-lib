@@ -49,9 +49,11 @@ namespace netlib {
             fd_set fdset;
             socket_t highest_fd = 0;
             FD_ZERO(&fdset);
+            std::vector<client_endpoint> local_clients;
             {
               std::lock_guard<std::mutex> lock(_mutex);
-              for (auto& client : _clients) {
+              local_clients = _clients;
+              for (auto& client : local_clients) {
                 socket_t fd = client.socket.get_raw().value();
                 if (highest_fd < fd){
                   highest_fd = fd;
@@ -68,8 +70,7 @@ namespace netlib {
               std::vector<client_endpoint> client_refs(select_res);
               uint32_t index = 0;
               {
-                std::lock_guard<std::mutex> lock(_mutex);
-                for (auto& client : _clients) {
+                for (auto& client : local_clients) {
                   socket_t fd = client.socket.get_raw().value();
                   if (FD_ISSET(fd, &fdset)){
                     client_refs[index++] = client;
@@ -123,34 +124,43 @@ namespace netlib {
         inline std::error_condition handle_client(client_endpoint endpoint) {
           std::vector<uint8_t> total_buffer;
           std::array<uint8_t, 2048> buffer{};
-          ssize_t recv_res = 0;
-          while ((recv_res= ::recv(endpoint.socket.get_raw().value(), buffer.data(), buffer.size(), MSG_WAITALL)) > 0) {
-            total_buffer.insert(total_buffer.end(), buffer.begin(), buffer.begin() + recv_res);
-          }
+          ssize_t recv_res = ::recv(endpoint.socket.get_raw().value(), buffer.data(), buffer.size(), MSG_WAITALL);
           if (recv_res == 0){
             if (_cb_on_error) {
               _cb_on_error(endpoint, std::errc::connection_aborted);
             }
             remove_client(endpoint.socket.get_raw().value());
-          }
-          if (_cb_on_recv) {
-            netlib::server_response response = _cb_on_recv(endpoint, total_buffer);
-            if (!response.answer.empty()) {
-              ssize_t send_result = ::send(endpoint.socket.get_raw().value(),
-                                           response.answer.data(),
-                                           response.answer.size(),
-                                           0);
-              if ((send_result != response.answer.size()) && (_cb_on_error)) {
-                _cb_on_error(endpoint, socket_get_last_error());
-              }
+            return std::errc::connection_aborted;
+          } else if (recv_res < 0) {
+            //error
+            std::error_condition recv_error = socket_get_last_error();
+            if (_cb_on_error) {
+              _cb_on_error(endpoint, recv_error);
             }
-            if (response.terminate) {
-              endpoint.socket.close();
-              remove_client(endpoint.socket.get_raw().value());
-            }
+            return recv_error;
+          } else {
+            total_buffer.insert(total_buffer.end(), buffer.begin(), buffer.begin() + recv_res);
 
+            if (_cb_on_recv) {
+              netlib::server_response response = _cb_on_recv(endpoint, total_buffer);
+              if (!response.answer.empty()) {
+                ssize_t send_result = ::send(endpoint.socket.get_raw().value(),
+                                             response.answer.data(),
+                                             response.answer.size(),
+                                             0);
+                if ((send_result != response.answer.size()) && (_cb_on_error)) {
+                  _cb_on_error(endpoint, socket_get_last_error());
+                }
+              }
+              if (response.terminate) {
+                endpoint.socket.close();
+                remove_client(endpoint.socket.get_raw().value());
+              }
+
+            }
+            return {};
           }
-          return {};
+
         }
 
         bool remove_client(socket_t socket_id) {
@@ -195,7 +205,7 @@ namespace netlib {
               continue;
             }
             _listener_sock->set_nonblocking(true);
-            _listener_sock->set_reuseaddr(true);
+            //_listener_sock->set_reuseaddr(true);
 
             int32_t res = ::bind(_listener_sock->get_raw().value(), res_addrinfo->ai_addr, res_addrinfo->ai_addrlen);
             if (res < 0) {
