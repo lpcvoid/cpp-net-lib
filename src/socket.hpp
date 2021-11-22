@@ -63,7 +63,7 @@ namespace netlib {
       socket() = default;
 
         bool is_valid() {
-            return _socket.has_value();
+            return _socket.has_value() && _socket.value() != INVALID_SOCKET;
         }
 
         [[nodiscard]] std::optional<socket_t> get_raw() const {

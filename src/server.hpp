@@ -6,6 +6,7 @@
 #include <atomic>
 #include <cassert>
 #include <functional>
+#include <iostream>
 #include <mutex>
 #include <optional>
 #include <thread>
@@ -85,6 +86,11 @@ namespace netlib {
                 }, client_to_recv);
               }
 
+            } else if (select_res == 0) {
+              //nothing interesting happened before timeout
+            } else {
+              //error was returned
+              std::cerr << "server select error: " << socket_get_last_error().message() << std::endl;
             }
           }
         }
@@ -110,7 +116,11 @@ namespace netlib {
                   }
                 }
                 if (greeting.terminate) {
+                  if (_cb_on_error) {
+                    _cb_on_error(new_endpoint, std::errc::connection_aborted);
+                  }
                   new_endpoint.socket.close();
+                  continue;
                 }
               }
               if (new_endpoint.socket.is_valid()) {
@@ -130,17 +140,23 @@ namespace netlib {
               _cb_on_error(endpoint, std::errc::connection_aborted);
             }
             remove_client(endpoint.socket.get_raw().value());
+            endpoint.socket.close();
             return std::errc::connection_aborted;
           } else if (recv_res < 0) {
             //error
             std::error_condition recv_error = socket_get_last_error();
-            if (_cb_on_error) {
-              _cb_on_error(endpoint, recv_error);
+            //we do not want to spam callback with wouldblock messages
+            //for portability we shall check both EAGAIN and EWOULDBLOCK
+            if ((recv_error != std::errc::resource_unavailable_try_again) &&
+                  (recv_error != std::errc::operation_would_block)) {
+              if (_cb_on_error) {
+                _cb_on_error(endpoint, recv_error);
+              }
             }
             return recv_error;
           } else {
+            //we got data
             total_buffer.insert(total_buffer.end(), buffer.begin(), buffer.begin() + recv_res);
-
             if (_cb_on_recv) {
               netlib::server_response response = _cb_on_recv(endpoint, total_buffer);
               if (!response.answer.empty()) {
@@ -153,8 +169,11 @@ namespace netlib {
                 }
               }
               if (response.terminate) {
-                endpoint.socket.close();
+                if (_cb_on_error) {
+                  _cb_on_error(endpoint, std::errc::connection_aborted);
+                }
                 remove_client(endpoint.socket.get_raw().value());
+                endpoint.socket.close();
               }
 
             }
@@ -174,15 +193,14 @@ namespace netlib {
 
       public:
         server() = default;
-        virtual ~server() {
-          close();
+        virtual ~server() { stop();
         }
         inline std::error_condition create(const std::string& bind_host,
                                     const std::variant<std::string,uint16_t>& service,
                                     AddressFamily address_family,
                                     AddressProtocol address_protocol) {
           if (_listener_sock.has_value()) {
-            this->close();
+            this->stop();
           }
 
           const std::string service_string = std::holds_alternative<uint16_t>(service) ? std::to_string(std::get<uint16_t>(service)) : std::get<std::string>(service);
@@ -193,7 +211,7 @@ namespace netlib {
           }
 
           auto close_and_free = [&](){
-            this->close();
+            this->stop();
             freeaddrinfo(addrinfo_result.first);
           };
 
@@ -234,7 +252,7 @@ namespace netlib {
         inline void register_callback_on_recv(callback_recv_t onrecv) {_cb_on_recv = std::move(onrecv);};
         inline void register_callback_on_error(callback_error_t onerror) {_cb_on_error = std::move(onerror);};
 
-        inline void close(){
+        inline void stop(){
           _server_active = false;
           if (_accept_thread.joinable()) {
             _accept_thread.join();
@@ -246,6 +264,7 @@ namespace netlib {
             _listener_sock->close();
             _listener_sock.reset();
           }
+          std::cout << "server stopped" << std::endl;
         }
 
         inline std::size_t get_client_count() {
