@@ -4,6 +4,7 @@
 #include "socket.hpp"
 #include "thread_pool.hpp"
 #include <future>
+#include <iostream>
 #include <optional>
 #include <variant>
 #include <vector>
@@ -22,7 +23,7 @@ namespace netlib {
           fd_set fdset;
           FD_ZERO(&fdset);
           FD_SET(sock, &fdset);
-          timeval tv{.tv_sec = timeout.count() / 1000, .tv_usec=(timeout.count() % 1000) * 1000 };
+          timeval tv{.tv_sec = timeout.count() / 1000, .tv_usec=static_cast<int32_t>((timeout.count() % 1000) * 1000)};
           fd_set* fdset_ptr_read = ((op_class == OperationClass::read) || (op_class == OperationClass::both)) ? &fdset : nullptr;
           fd_set* fdset_ptr_write = ((op_class == OperationClass::write) || (op_class == OperationClass::both)) ? &fdset : nullptr;
           std::chrono::time_point<std::chrono::steady_clock> start = std::chrono::steady_clock::now();
@@ -160,6 +161,7 @@ namespace netlib {
             return {{}, std::errc::not_connected};
           }
 
+          std::cout << "Ping0" << std::endl;
           if (timeout.has_value() && timeout->count() < 0) {
             return {{}, std::errc::timed_out};
           }
@@ -169,14 +171,18 @@ namespace netlib {
             return {{}, wait_res.first};
           }
 
+          std::cout << "Ping1" << std::endl;
+
           std::vector<uint8_t> data(byte_count, 0);
           ssize_t recv_res = ::recv(_socket.value().get_raw().value(), data.data(), byte_count, 0);
           if (recv_res > 0) {
+            std::cout << "Ping2" << std::endl;
             data.resize(recv_res);
             return {data, {}};
           } else if (recv_res == 0){
             return {{}, std::errc::connection_aborted};
           }
+          std::cout << "Ping3" << std::endl;
           return {{}, socket_get_last_error()};
         }
 

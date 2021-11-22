@@ -80,34 +80,15 @@ namespace netlib {
         }
 
         bool set_reuseaddr(bool reuseaddr = true){
+#ifdef _WIN32
+            int32_t val = static_cast<int32_t>(reuseaddr);
+            return setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
+                              reinterpret_cast<char*>(&val), sizeof(val)) == 0;
+#else
             auto mode = static_cast<int32_t>(reuseaddr);
             return setsockopt(_socket.value(), SOL_SOCKET, SO_REUSEADDR, &mode, sizeof(int32_t)) == 0;
-        }
-
-        bool set_recv_timeout(std::chrono::milliseconds ms){
-#ifdef _WIN32
-            int32_t val = ms.count();
-            return setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO,
-                              reinterpret_cast<char*>(&val), sizeof(val));
-#else
-            timeval tv{.tv_sec = ms.count() / 1000, .tv_usec=(ms.count() % 1000) * 1000 };
-            return setsockopt(_socket.value(), SOL_SOCKET, SO_RCVTIMEO,
-                              reinterpret_cast<void*>(&tv), sizeof(timeval)) == 0;
 #endif
         }
-
-        bool set_send_timeout(std::chrono::milliseconds ms){
-#ifdef _WIN32
-            int32_t val = ms.count();
-            return setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO,
-                              reinterpret_cast<char*>(&val), sizeof(val));
-#else
-            timeval tv{.tv_sec = ms.count() / 1000, .tv_usec=(ms.count() % 1000) * 1000 };
-            return setsockopt(_socket.value(), SOL_SOCKET, SO_SNDTIMEO,
-                              reinterpret_cast<void*>(&tv), sizeof(timeval)) == 0;
-#endif
-        }
-
 
         std::error_condition create(int32_t domain, int32_t stype, int32_t protocol) {
             initialize_system();

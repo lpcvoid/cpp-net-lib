@@ -1,5 +1,6 @@
 #include "../3rdparty/doctest/doctest/doctest.h"
 #include "../src/netlib.hpp"
+#include <iostream>
 #include <random>
 #include <sstream>
 
@@ -68,6 +69,9 @@ TEST_CASE("Test server with callbacks") {
 
   auto client_recv = client.recv(1024, 1000ms);
   CHECK_FALSE(client_recv.second);
+  if (client_recv.second) {
+    std::cout << "Recv error: " << client_recv.second.message() << std::endl;
+  }
   CHECK(client_recv.first == server_response_message);
 }
 
