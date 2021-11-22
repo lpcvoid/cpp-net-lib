@@ -1,13 +1,19 @@
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "../3rdparty/doctest/doctest/doctest.h"
 #include "../src/netlib.hpp"
+#include <random>
+#include <sstream>
 
 using namespace std::chrono_literals;
 
 static const std::string hello_msg = "hello!";
 static const std::vector<uint8_t> client_message = {1,2,3};
 static const std::vector<uint8_t> server_response_message = {1, 3, 3, 7};
-static const uint16_t test_port = 8888;
+
+std::random_device rd;
+std::mt19937 gen(rd());
+std::uniform_int_distribution<> distr(10000, 65000);
+
+static uint16_t test_port = distr(gen);
 
 std::string to_hex_array(const std::vector<uint8_t> &data) {
   std::stringstream stream;

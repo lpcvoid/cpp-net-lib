@@ -18,9 +18,20 @@ after trying ASIO, which I found way to heavy for my tastes.
 ### How?
 
 You can just add this repo as a git submodule, which at this point is
-probably (IMO) the best way to handle C++ dependencies. Just `#include "netlib.hpp"`
-somewhere.
+probably (IMO) the best way to handle C++ dependencies.
 
+```shell
+git submodule add https://github.com/lpcvoid/cpp-net-lib.git extern/cpp-net-lib
+```
+
+This will check out the lib as a submodule within your project. Now just `#include "extern/netlib.hpp"` somewhere.
+
+There are some cmake flags you can use:
+
+| Option | Default | Description  |
+|---|---|---|
+| __BUILD_TESTS__ | __ON__ | Builds tests using `doctest`,which is then introduced as a dependency.  |
+| __BUILD_EXAMPLES__ | __ON__  | Builds some small example programs. |
 
 ### Short introduction
 
