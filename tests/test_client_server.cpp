@@ -14,7 +14,7 @@ std::random_device rd;
 std::mt19937 gen(rd());
 std::uniform_int_distribution<> distr(10000, 65000);
 
-static uint16_t test_port = distr(gen);
+static uint16_t test_port = 7777;//distr(gen);
 
 std::string to_hex_array(const std::vector<uint8_t> &data) {
   std::stringstream stream;
@@ -33,7 +33,7 @@ TEST_CASE("Test server with callbacks") {
 
 
 
-  std::cout << "Starting failing test" << std::endl;
+  std::cout << "****Starting failing test" << std::endl;
 
   server.register_callback_on_connect(
       [&](netlib::client_endpoint endpoint) -> netlib::server_response {
@@ -77,13 +77,15 @@ TEST_CASE("Test server with callbacks") {
 
   std::this_thread::sleep_for(1000ms);
 
-  std::cout << "Starting failing segment" << std::endl;
+  std::cout << "***********Starting failing segment" << std::endl;
 
   auto client_recv = client.recv(1024, 5000ms);
   CHECK_FALSE(client_recv.second);
   if (client_recv.second) {
-    std::cout << "Recv error: " << client_recv.second.message() << std::endl;
+    std::cout << "test recv error: " << client_recv.second.message() << std::endl;
   }
   CHECK(client_recv.first == server_response_message);
+
+  std::cout << "***********Ending failing segment" << std::endl;
 }
 

@@ -120,6 +120,7 @@ namespace netlib {
                     _cb_on_error(new_endpoint, std::errc::connection_aborted);
                   }
                   new_endpoint.socket.close();
+                  std::cout << "server kicked client accept" << std::endl;
                   continue;
                 }
               }
@@ -141,16 +142,17 @@ namespace netlib {
             recv_res += recv_res_cycle;
           }
           if (recv_res == 0){
-            std::cout << "recv_res == 0" << std::endl;
+            std::cout << "server recv_res == 0" << std::endl;
             if (_cb_on_error) {
               _cb_on_error(endpoint, std::errc::connection_aborted);
             }
             remove_client(endpoint.socket.get_raw().value());
             endpoint.socket.close();
+            std::cout << "server kicked client recv 0" << std::endl;
             return std::errc::connection_aborted;
           } else if (recv_res < 0) {
             //error
-            std::cout << "recv_res == -1" << std::endl;
+            std::cout << "server recv_res == -1" << std::endl;
             std::error_condition recv_error = socket_get_last_error();
             //we do not want to spam callback with wouldblock messages
             //for portability we shall check both EAGAIN and EWOULDBLOCK
@@ -162,7 +164,7 @@ namespace netlib {
             }
             return recv_error;
           } else {
-            std::cout << "recv_res > 0: " << recv_res << " " << total_buffer.size() << std::endl;
+            std::cout << "server recv_res > 0: " << recv_res << " " << total_buffer.size() << std::endl;
             //we got data
             if (_cb_on_recv) {
               netlib::server_response response = _cb_on_recv(endpoint, total_buffer);
@@ -181,6 +183,7 @@ namespace netlib {
                 }
                 remove_client(endpoint.socket.get_raw().value());
                 endpoint.socket.close();
+                std::cout << "server kicked client because wanted" << std::endl;
               }
 
             }

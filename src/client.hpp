@@ -33,17 +33,22 @@ namespace netlib {
           std::chrono::milliseconds ms_taken = std::chrono::duration_cast<std::chrono::milliseconds>((end - start));
           if (select_res == 1)
           {
-            int32_t so_error = 0;
-            socklen_t len = sizeof(so_error);
-            getsockopt(sock, SOL_SOCKET, SO_ERROR, &so_error, &len);
-            if (so_error == 0) {
-              //success
-              std::cout << "select no error" << std::endl;
-              return {{}, ms_taken};
-            }
-            std::error_condition error_condition = static_cast<std::errc>(so_error);
-            std::cout << "select ret error" << error_condition.message() << std::endl;
-            return {static_cast<std::errc>(so_error), ms_taken};
+            return {{}, ms_taken};
+
+
+
+
+//            int32_t so_error = 0;
+//            socklen_t len = sizeof(so_error);
+//            getsockopt(sock, SOL_SOCKET, SO_ERROR, &so_error, &len);
+//            if (so_error == 0) {
+//              //success
+//              std::cout << "client select no error" << std::endl;
+//              return {{}, ms_taken};
+//            }
+//            std::error_condition error_condition = static_cast<std::errc>(so_error);
+//            std::cout << "client select ret error" << error_condition.message() << std::endl;
+//            return {static_cast<std::errc>(so_error), ms_taken};
           } else if (select_res == 0) {
             //timeout
             std::cout << "select ret 0 timeout" << std::endl;
@@ -134,6 +139,8 @@ namespace netlib {
           }, data, timeout);
         }
         inline std::pair<std::size_t, std::error_condition> send(const std::vector<uint8_t> &data, std::optional<std::chrono::milliseconds> timeout) {
+
+          std::cout << "client send: " << data.size() << std::endl;
           if (!is_connected()) {
             return {0, std::errc::not_connected};
           }
@@ -167,31 +174,30 @@ namespace netlib {
             return {{}, std::errc::not_connected};
           }
 
-          std::cout << "Ping0" << std::endl;
           if (timeout.has_value() && timeout->count() < 0) {
-            std::cout << "Timeout returned" << std::endl;
+            std::cout << "client recv timeout returned" << std::endl;
             return {{}, std::errc::timed_out};
           }
 
           auto wait_res = wait_for_operation(_socket.value().get_raw().value(), OperationClass::read, timeout.value());
           if (wait_res.first) {
-            std::cout << "select timeout returned" << std::endl;
+            std::cout << "client recv select timeout returned" << std::endl;
             return {{}, wait_res.first};
           }
 
-          std::cout << "Ping1" << std::endl;
+          std::cout << "client recv after wait" << std::endl;
 
           std::vector<uint8_t> data(byte_count, 0);
-          ssize_t recv_res = ::recv(_socket.value().get_raw().value(), data.data(), byte_count, 0);
+          ssize_t recv_res = ::recv(_socket.value().get_raw().value(), data.data(), byte_count, MSG_WAITALL);
           if (recv_res > 0) {
-            std::cout << "Ping2" << std::endl;
+            std::cout << "client recv " << recv_res << std::endl;
             data.resize(recv_res);
             return {data, {}};
           } else if (recv_res == 0){
-            std::cout << "Ping3" << std::endl;
+            std::cout << "client recv 0" << std::endl;
             return {{}, std::errc::connection_aborted};
           }
-          std::cout << "Ping4" << std::endl;
+          std::cout << "client recv error: " << recv_res << " : " << socket_get_last_error().message() << std::endl;
           return {{}, socket_get_last_error()};
         }
 
