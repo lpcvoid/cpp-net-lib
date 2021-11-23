@@ -2,6 +2,13 @@ cmake_minimum_required(VERSION 3.15)
 project(netlib)
 set(CMAKE_CXX_STANDARD 20)
 
+# we want the maximum amount of compiler bickering
+if(MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+endif()
+
 find_package(Threads)
 
 set(NETLIB_SRC

@@ -42,7 +42,7 @@ namespace netlib {
     }
     void create_threads(std::size_t thread_count) {
       _thread_pool.reserve(thread_count + _thread_pool.size());
-      for (int i = 0; i < thread_count; ++i) {
+      for (uint32_t i = 0; i < thread_count; ++i) {
         add_thread();
       }
     }
