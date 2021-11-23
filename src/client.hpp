@@ -41,7 +41,8 @@ namespace netlib {
               std::cout << "select no error" << std::endl;
               return {{}, ms_taken};
             }
-            std::cout << "select ret error" << std::endl;
+            std::error_condition error_condition = static_cast<std::errc>(so_error);
+            std::cout << "select ret error" << error_condition.message() << std::endl;
             return {static_cast<std::errc>(so_error), ms_taken};
           } else if (select_res == 0) {
             //timeout

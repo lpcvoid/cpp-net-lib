@@ -134,8 +134,14 @@ namespace netlib {
         inline std::error_condition handle_client(client_endpoint endpoint) {
           std::vector<uint8_t> total_buffer;
           std::array<uint8_t, 2048> buffer{};
-          ssize_t recv_res = ::recv(endpoint.socket.get_raw().value(), buffer.data(), buffer.size(), MSG_WAITALL);
+          ssize_t recv_res = 0;
+          ssize_t recv_res_cycle = 0;
+          while ((recv_res_cycle = ::recv(endpoint.socket.get_raw().value(), buffer.data(), buffer.size(), MSG_WAITALL)) > 0) {
+            total_buffer.insert(total_buffer.end(), buffer.begin(), buffer.begin() + recv_res_cycle);
+            recv_res += recv_res_cycle;
+          }
           if (recv_res == 0){
+            std::cout << "recv_res == 0" << std::endl;
             if (_cb_on_error) {
               _cb_on_error(endpoint, std::errc::connection_aborted);
             }
@@ -144,6 +150,7 @@ namespace netlib {
             return std::errc::connection_aborted;
           } else if (recv_res < 0) {
             //error
+            std::cout << "recv_res == -1" << std::endl;
             std::error_condition recv_error = socket_get_last_error();
             //we do not want to spam callback with wouldblock messages
             //for portability we shall check both EAGAIN and EWOULDBLOCK
@@ -155,8 +162,8 @@ namespace netlib {
             }
             return recv_error;
           } else {
+            std::cout << "recv_res > 0: " << recv_res << " " << total_buffer.size() << std::endl;
             //we got data
-            total_buffer.insert(total_buffer.end(), buffer.begin(), buffer.begin() + recv_res);
             if (_cb_on_recv) {
               netlib::server_response response = _cb_on_recv(endpoint, total_buffer);
               if (!response.answer.empty()) {
