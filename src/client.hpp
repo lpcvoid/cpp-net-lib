@@ -188,7 +188,7 @@ namespace netlib {
           std::cout << "client recv after wait" << std::endl;
 
           std::vector<uint8_t> data(byte_count, 0);
-          ssize_t recv_res = ::recv(_socket.value().get_raw().value(), data.data(), byte_count, MSG_WAITALL);
+          ssize_t recv_res = ::recv(_socket.value().get_raw().value(), data.data(), byte_count, 0);
           if (recv_res > 0) {
             std::cout << "client recv " << recv_res << std::endl;
             data.resize(recv_res);

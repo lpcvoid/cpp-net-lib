@@ -112,6 +112,7 @@ namespace netlib {
                                                greeting.answer.size(),
                                                0);
                   if ((send_result != greeting.answer.size()) && (_cb_on_error)) {
+                    std::cout << "server error accept" << std::endl;
                     _cb_on_error(new_endpoint, socket_get_last_error());
                   }
                 }
@@ -137,7 +138,7 @@ namespace netlib {
           std::array<uint8_t, 2048> buffer{};
           ssize_t recv_res = 0;
           ssize_t recv_res_cycle = 0;
-          while ((recv_res_cycle = ::recv(endpoint.socket.get_raw().value(), buffer.data(), buffer.size(), MSG_WAITALL)) > 0) {
+          while ((recv_res_cycle = ::recv(endpoint.socket.get_raw().value(), buffer.data(), buffer.size(), 0)) > 0) {
             total_buffer.insert(total_buffer.end(), buffer.begin(), buffer.begin() + recv_res_cycle);
             recv_res += recv_res_cycle;
           }
