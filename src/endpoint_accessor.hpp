@@ -1,12 +1,10 @@
 #pragma once
-#include <arpa/inet.h>
 #include <array>
 #include <cstring>
-#include <netdb.h>
-#include <netinet/in.h>
 #include <optional>
 #include <string>
-#include <sys/socket.h>
+#include "socket.hpp"
+
 
 namespace netlib {
   class endpoint_accessor {

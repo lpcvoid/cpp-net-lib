@@ -31,8 +31,6 @@ TEST_CASE("Test server with callbacks") {
   bool client_was_connected = false;
   bool client_has_sent = false;
 
-
-
   std::cout << "****Starting failing test" << std::endl;
 
   server.register_callback_on_connect(

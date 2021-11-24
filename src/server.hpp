@@ -9,6 +9,7 @@
 #include <iostream>
 #include <map>
 #include <mutex>
+#include <array>
 #include <optional>
 #include <thread>
 #include <utility>
@@ -69,6 +70,13 @@ namespace netlib {
                 FD_SET(fd, &fdset);
               }
             }
+
+            //windows returns WSAEINVAL if we have nothing to pass to select, so we
+            //need to filter this previously and elmulate the sleeping
+            if (!highest_fd) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(50));
+                continue;
+            }
             //we want the timeout to be fairly low, so that we avoid situations where
             //we have a new client in _clients, but are not monitoring it yet - that
             //would mean we have a "hardcoded" delay in servicing a new clients packets
@@ -119,14 +127,14 @@ namespace netlib {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
             new_endpoint.addr_len = sizeof(addrinfo);
             socket_t status = ::accept(_listener_sock->get_raw().value(), &new_endpoint.addr, &new_endpoint.addr_len);
-            if (status > 0) {
+            if (status != INVALID_SOCKET) {
               new_endpoint.socket.set_raw(status);
               new_endpoint.socket.set_nonblocking(true);
               if (_cb_onconnect) {
                 netlib::server_response greeting = _cb_onconnect(new_endpoint);
                 if (!greeting.answer.empty()) {
                   ssize_t send_result = ::send(new_endpoint.socket.get_raw().value(),
-                                               greeting.answer.data(),
+                                               reinterpret_cast<const char*>(greeting.answer.data()),
                                                greeting.answer.size(),
                                                0);
                   if ((send_result != greeting.answer.size()) && (_cb_on_error)) {
@@ -159,7 +167,7 @@ namespace netlib {
           ssize_t recv_res = 0;
           while (true) {
             recv_res = ::recv(endpoint.socket.get_raw().value(),
-                                    buffer.data(), buffer.size(), 0);
+                                    reinterpret_cast<char*>(buffer.data()), buffer.size(), 0);
             if (recv_res > 0) {
               total_buffer.insert(total_buffer.end(), buffer.begin(),
                                   buffer.begin() + recv_res);
@@ -180,7 +188,7 @@ namespace netlib {
                   if (!response.answer.empty()) {
                     ssize_t send_result = ::send(
                         endpoint.socket.get_raw().value(),
-                        response.answer.data(), response.answer.size(), 0);
+                        reinterpret_cast<const char*>(response.answer.data()), response.answer.size(), 0);
                     if (send_result != response.answer.size()) {
                       return socket_get_last_error();
                     }
@@ -217,7 +225,9 @@ namespace netlib {
         }
 
       public:
-        server() = default;
+        server() {
+          netlib::socket::initialize_system();
+        }
         virtual ~server() { stop();
         }
         inline std::error_condition create(const std::string& bind_host,
