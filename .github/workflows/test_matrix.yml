@@ -13,19 +13,24 @@ jobs:
       fail-fast: false
       matrix:
         config:
+#          - {
+#            name: "Windows MSVC",
+#            os: windows-latest,
+#            build_type: "Release", cc: "cl", cxx: "cl",
+#            environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
+#          }
           - {
-            name: "Windows Latest MSVC", artifact: "Windows-MSVC.tar.xz",
-            os: windows-latest,
-            build_type: "Release", cc: "cl", cxx: "cl",
-            environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
-          }
-          - {
-            name: "Ubuntu",
+            name: "Ubuntu gcc",
             os: ubuntu-latest,
             build_type: "Release", cc: "gcc", cxx: "g++"
           }
           - {
-            name: "macOS",
+            name: "Ubuntu clang",
+            os: ubuntu-latest,
+            build_type: "Release", cc: "clang", cxx: "clang++"
+          }
+          - {
+            name: "macOS clang",
             os: macos-latest,
             build_type: "Release", cc: "clang", cxx: "clang++"
           }
