@@ -6,6 +6,8 @@
 #include <atomic>
 #include <cassert>
 #include <functional>
+#include <iostream>
+#include <map>
 #include <mutex>
 #include <optional>
 #include <thread>
@@ -42,7 +44,8 @@ namespace netlib {
         callback_error_t _cb_on_error{};
         std::thread _accept_thread;
         std::thread _processor_thread;
-        netlib::thread_pool _thread_pool;
+        netlib::thread_pool _thread_pool = netlib::thread_pool::create<1,1>();
+        std::map<socket_t, std::atomic<bool>> _busy_map;
 
         inline void processing_func() {
           while (_server_active) {
@@ -53,9 +56,14 @@ namespace netlib {
             {
               std::lock_guard<std::mutex> lock(_mutex);
               local_clients = _clients;
-              for (auto& client : local_clients) {
+              for (auto &client : local_clients) {
                 socket_t fd = client.socket.get_raw().value();
-                if (highest_fd < fd){
+                assert(_busy_map.contains(fd));
+                if (_busy_map[fd]) {
+                  // this fd is currently being handled by a task in threadpool
+                  continue;
+                }
+                if (highest_fd < fd) {
                   highest_fd = fd;
                 }
                 FD_SET(fd, &fdset);
@@ -68,12 +76,15 @@ namespace netlib {
             int32_t select_res = ::select(highest_fd + 1, &fdset, nullptr, nullptr, &tv);
             if (select_res > 0) {
               std::vector<client_endpoint> client_refs(select_res);
-              uint32_t index = 0;
+              int32_t index = 0;
               {
+                std::lock_guard<std::mutex> lock(_mutex);
                 for (auto& client : local_clients) {
                   socket_t fd = client.socket.get_raw().value();
                   if (FD_ISSET(fd, &fdset)){
                     client_refs[index++] = client;
+                    assert(_busy_map.contains(fd));
+                    _busy_map[fd] = true;
                   }
                 }
               }
@@ -81,10 +92,23 @@ namespace netlib {
               //add callback tasks to threadpool for processing
               for (auto& client_to_recv : client_refs) {
                 _thread_pool.add_task([&](client_endpoint ce){
-                  this->handle_client(ce);
+                  socket_t id = ce.socket.get_raw().value();
+                  std::error_condition error = this->handle_client(ce);
+                  if ((error) && (_cb_on_error)) {
+                      _cb_on_error(ce, error);
+                  }
+                  std::lock_guard<std::mutex> lock(_mutex);
+                  if (_busy_map.contains(id)) {
+                    _busy_map[id] = false;
+                  }
                 }, client_to_recv);
               }
 
+            } else if (select_res == 0) {
+              //nothing interesting happened before timeout
+            } else {
+              //error was returned
+              std::cerr << "server select error: " << socket_get_last_error().message() << std::endl;
             }
           }
         }
@@ -94,7 +118,7 @@ namespace netlib {
           while (_server_active) {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
             new_endpoint.addr_len = sizeof(addrinfo);
-            int32_t status = ::accept(_listener_sock->get_raw().value(), &new_endpoint.addr, &new_endpoint.addr_len);
+            socket_t status = ::accept(_listener_sock->get_raw().value(), &new_endpoint.addr, &new_endpoint.addr_len);
             if (status > 0) {
               new_endpoint.socket.set_raw(status);
               new_endpoint.socket.set_nonblocking(true);
@@ -106,16 +130,24 @@ namespace netlib {
                                                greeting.answer.size(),
                                                0);
                   if ((send_result != greeting.answer.size()) && (_cb_on_error)) {
+                    std::cout << "server error accept" << std::endl;
                     _cb_on_error(new_endpoint, socket_get_last_error());
                   }
                 }
                 if (greeting.terminate) {
-                  new_endpoint.socket.close();
+                  if (_cb_on_error) {
+                    _cb_on_error(new_endpoint, std::errc::connection_aborted);
+                  }
+                  remove_client(new_endpoint);
+                  std::cout << "server kicked client accept" << std::endl;
+                  continue;
                 }
               }
               if (new_endpoint.socket.is_valid()) {
                 std::lock_guard<std::mutex> lock(_mutex);
+                std::cout << "server added new client, id " << status << std::endl;
                 _clients.push_back(new_endpoint);
+                _busy_map[status] = false;
               }
             }
           }
@@ -123,66 +155,77 @@ namespace netlib {
 
         inline std::error_condition handle_client(client_endpoint endpoint) {
           std::vector<uint8_t> total_buffer;
-          std::array<uint8_t, 2048> buffer{};
-          ssize_t recv_res = ::recv(endpoint.socket.get_raw().value(), buffer.data(), buffer.size(), MSG_WAITALL);
-          if (recv_res == 0){
-            if (_cb_on_error) {
-              _cb_on_error(endpoint, std::errc::connection_aborted);
-            }
-            remove_client(endpoint.socket.get_raw().value());
-            return std::errc::connection_aborted;
-          } else if (recv_res < 0) {
-            //error
-            std::error_condition recv_error = socket_get_last_error();
-            if (_cb_on_error) {
-              _cb_on_error(endpoint, recv_error);
-            }
-            return recv_error;
-          } else {
-            total_buffer.insert(total_buffer.end(), buffer.begin(), buffer.begin() + recv_res);
-
-            if (_cb_on_recv) {
-              netlib::server_response response = _cb_on_recv(endpoint, total_buffer);
-              if (!response.answer.empty()) {
-                ssize_t send_result = ::send(endpoint.socket.get_raw().value(),
-                                             response.answer.data(),
-                                             response.answer.size(),
-                                             0);
-                if ((send_result != response.answer.size()) && (_cb_on_error)) {
-                  _cb_on_error(endpoint, socket_get_last_error());
+          std::array<uint8_t, 1024> buffer{};
+          ssize_t recv_res = 0;
+          while (true) {
+            recv_res = ::recv(endpoint.socket.get_raw().value(),
+                                    buffer.data(), buffer.size(), 0);
+            if (recv_res > 0) {
+              total_buffer.insert(total_buffer.end(), buffer.begin(),
+                                  buffer.begin() + recv_res);
+            } else if (recv_res == 0) {
+              std::cout << "server recv_res == 0" << std::endl;
+              remove_client(endpoint);
+              std::cout << "server kicked client recv 0" << std::endl;
+              return std::errc::connection_aborted;
+            } else if (recv_res < 0) {
+              // error
+              std::error_condition recv_error = socket_get_last_error();
+              if ((recv_error == std::errc::resource_unavailable_try_again) ||
+                  (recv_error == std::errc::operation_would_block)) {
+                // no more data, return what we got
+                if (_cb_on_recv) {
+                  netlib::server_response response =
+                      _cb_on_recv(endpoint, total_buffer);
+                  if (!response.answer.empty()) {
+                    ssize_t send_result = ::send(
+                        endpoint.socket.get_raw().value(),
+                        response.answer.data(), response.answer.size(), 0);
+                    if (send_result != response.answer.size()) {
+                      return socket_get_last_error();
+                    }
+                  }
+                  if (response.terminate) {
+                    remove_client(endpoint);
+                    std::cout << "server kicked client because wanted"
+                              << std::endl;
+                    return std::errc::connection_aborted;
+                  }
                 }
+                return {};
+              } else {
+                std::cout << "server recv_res == -1" << std::endl;
+                return recv_error;
               }
-              if (response.terminate) {
-                endpoint.socket.close();
-                remove_client(endpoint.socket.get_raw().value());
-              }
-
             }
-            return {};
           }
-
         }
 
-        bool remove_client(socket_t socket_id) {
+        bool remove_client(client_endpoint& ce) {
           //the remove_if-> erase idiom is perhaps my most hated part about std containers
           std::lock_guard<std::mutex> lock(_mutex);
-          return _clients.erase(
-              std::remove_if(_clients.begin(), _clients.end(), [&](const client_endpoint& ce) {
-                return ce.socket.get_raw() == socket_id;
-              }),_clients.end()) != _clients.end();
+          std::size_t client_count = _clients.size();
+          _busy_map.erase(ce.socket.get_raw().value());
+          std::cout << "remove_client, client count at start " << _clients.size() << std::endl;
+          std::erase_if(_clients, [&](const client_endpoint& single_endpoint){
+            return (ce.socket.get_raw().value() == single_endpoint.socket.get_raw().value());
+          });
+          std::cout << "removed client, id " << ce.socket.get_raw().value() << std::endl;
+          ce.socket.close();
+          assert((client_count - _clients.size()) == 1);
+          return true;
         }
 
       public:
         server() = default;
-        virtual ~server() {
-          close();
+        virtual ~server() { stop();
         }
         inline std::error_condition create(const std::string& bind_host,
                                     const std::variant<std::string,uint16_t>& service,
                                     AddressFamily address_family,
                                     AddressProtocol address_protocol) {
           if (_listener_sock.has_value()) {
-            this->close();
+            this->stop();
           }
 
           const std::string service_string = std::holds_alternative<uint16_t>(service) ? std::to_string(std::get<uint16_t>(service)) : std::get<std::string>(service);
@@ -193,7 +236,7 @@ namespace netlib {
           }
 
           auto close_and_free = [&](){
-            this->close();
+            this->stop();
             freeaddrinfo(addrinfo_result.first);
           };
 
@@ -204,9 +247,7 @@ namespace netlib {
               close_and_free();
               continue;
             }
-            _listener_sock->set_nonblocking(true);
-            //_listener_sock->set_reuseaddr(true);
-
+            _listener_sock->set_nonblocking(true); //we want to be able to join
             int32_t res = ::bind(_listener_sock->get_raw().value(), res_addrinfo->ai_addr, res_addrinfo->ai_addrlen);
             if (res < 0) {
               close_and_free();
@@ -234,7 +275,7 @@ namespace netlib {
         inline void register_callback_on_recv(callback_recv_t onrecv) {_cb_on_recv = std::move(onrecv);};
         inline void register_callback_on_error(callback_error_t onerror) {_cb_on_error = std::move(onerror);};
 
-        inline void close(){
+        inline void stop(){
           _server_active = false;
           if (_accept_thread.joinable()) {
             _accept_thread.join();
@@ -246,6 +287,7 @@ namespace netlib {
             _listener_sock->close();
             _listener_sock.reset();
           }
+          std::cout << "server stopped" << std::endl;
         }
 
         inline std::size_t get_client_count() {

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "socket.hpp"
-#include <netdb.h>
 #include <system_error>
 #include <utility>
 
@@ -31,27 +30,31 @@ namespace netlib {
       switch (gai_res) {
       case EAI_AGAIN:{
         return { nullptr, std::errc::resource_unavailable_try_again};
-      } break;
+      }
       case EAI_FAMILY:{
         return { nullptr, std::errc::address_family_not_supported};
-      } break;
+      }
+#ifndef _WIN32
       case EAI_ADDRFAMILY:
+#endif
       case EAI_NODATA:
       case EAI_NONAME:
       case EAI_FAIL: {
         return { nullptr, std::errc::network_unreachable};
-      } break;
+      }
       case EAI_MEMORY: {
         return { nullptr, std::errc::not_enough_memory};
-      } break;
+      }
+#ifndef _WIN32
       case EAI_SYSTEM: {
         return { nullptr, socket_get_last_error()};
-      } break;
+      }
+#endif
       case EAI_SOCKTYPE:
       case EAI_SERVICE: //this is perhaps debatable?
       case EAI_BADFLAGS: {
         return { nullptr, std::errc::invalid_argument};
-      } break;
+      }
       default: {
         // we missuse the "not_supported" posix error type to indicate
         // that we don't recognize the error type

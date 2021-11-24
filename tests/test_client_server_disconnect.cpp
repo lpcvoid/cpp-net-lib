@@ -40,7 +40,7 @@ TEST_CASE("Test disconnect handling") {
   CHECK_EQ(server.get_client_count(), 1);
 
   CHECK_FALSE(client.disconnect());
-  std::this_thread::sleep_for(100ms);
+  std::this_thread::sleep_for(1000ms);
   CHECK_EQ(server.get_client_count(), 0);
   CHECK(client_was_disconnected);
 }

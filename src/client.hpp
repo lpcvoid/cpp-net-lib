@@ -4,6 +4,7 @@
 #include "socket.hpp"
 #include "thread_pool.hpp"
 #include <future>
+#include <iostream>
 #include <optional>
 #include <variant>
 #include <vector>
@@ -18,11 +19,12 @@ namespace netlib {
         addrinfo* _endpoint_addr = nullptr;
         netlib::thread_pool _thread_pool = netlib::thread_pool::create<1,1>();
 
-        inline std::pair<std::error_condition, std::chrono::milliseconds>  wait_for_operation(socket_t sock, OperationClass op_class, std::chrono::milliseconds timeout) {
+        static inline std::pair<std::error_condition, std::chrono::milliseconds>  wait_for_operation(socket_t sock, OperationClass op_class, std::chrono::milliseconds timeout) {
           fd_set fdset;
           FD_ZERO(&fdset);
           FD_SET(sock, &fdset);
-          timeval tv{.tv_sec = timeout.count() / 1000, .tv_usec=(timeout.count() % 1000) * 1000 };
+          timeval tv{.tv_sec = timeout.count() / 1000, .tv_usec=static_cast<int32_t>((timeout.count() % 1000) * 1000)};
+          std::cout << "tv.tv_sec = " << tv.tv_sec << ", usec=" << tv.tv_usec << std::endl;
           fd_set* fdset_ptr_read = ((op_class == OperationClass::read) || (op_class == OperationClass::both)) ? &fdset : nullptr;
           fd_set* fdset_ptr_write = ((op_class == OperationClass::write) || (op_class == OperationClass::both)) ? &fdset : nullptr;
           std::chrono::time_point<std::chrono::steady_clock> start = std::chrono::steady_clock::now();
@@ -31,19 +33,29 @@ namespace netlib {
           std::chrono::milliseconds ms_taken = std::chrono::duration_cast<std::chrono::milliseconds>((end - start));
           if (select_res == 1)
           {
-            int32_t so_error = 0;
-            socklen_t len = sizeof(so_error);
-            getsockopt(sock, SOL_SOCKET, SO_ERROR, &so_error, &len);
-            if (so_error == 0) {
-              //success
-              return {{}, ms_taken};
-            }
-            return {static_cast<std::errc>(so_error), ms_taken};
+            return {{}, ms_taken};
+
+
+
+
+//            int32_t so_error = 0;
+//            socklen_t len = sizeof(so_error);
+//            getsockopt(sock, SOL_SOCKET, SO_ERROR, &so_error, &len);
+//            if (so_error == 0) {
+//              //success
+//              std::cout << "client select no error" << std::endl;
+//              return {{}, ms_taken};
+//            }
+//            std::error_condition error_condition = static_cast<std::errc>(so_error);
+//            std::cout << "client select ret error" << error_condition.message() << std::endl;
+//            return {static_cast<std::errc>(so_error), ms_taken};
           } else if (select_res == 0) {
             //timeout
+            std::cout << "select ret 0 timeout" << std::endl;
             return {std::errc::timed_out, ms_taken};
           } else {
             //error
+            std::cout << "select ret -1" << socket_get_last_error().message() << std::endl;
             return {socket_get_last_error(), ms_taken};
           }
         }
@@ -127,6 +139,8 @@ namespace netlib {
           }, data, timeout);
         }
         inline std::pair<std::size_t, std::error_condition> send(const std::vector<uint8_t> &data, std::optional<std::chrono::milliseconds> timeout) {
+
+          std::cout << "client send: " << data.size() << std::endl;
           if (!is_connected()) {
             return {0, std::errc::not_connected};
           }
@@ -161,22 +175,29 @@ namespace netlib {
           }
 
           if (timeout.has_value() && timeout->count() < 0) {
+            std::cout << "client recv timeout returned" << std::endl;
             return {{}, std::errc::timed_out};
           }
 
           auto wait_res = wait_for_operation(_socket.value().get_raw().value(), OperationClass::read, timeout.value());
           if (wait_res.first) {
+            std::cout << "client recv select timeout returned" << std::endl;
             return {{}, wait_res.first};
           }
+
+          std::cout << "client recv after wait" << std::endl;
 
           std::vector<uint8_t> data(byte_count, 0);
           ssize_t recv_res = ::recv(_socket.value().get_raw().value(), data.data(), byte_count, 0);
           if (recv_res > 0) {
+            std::cout << "client recv " << recv_res << std::endl;
             data.resize(recv_res);
             return {data, {}};
           } else if (recv_res == 0){
+            std::cout << "client recv 0" << std::endl;
             return {{}, std::errc::connection_aborted};
           }
+          std::cout << "client recv error: " << recv_res << " : " << socket_get_last_error().message() << std::endl;
           return {{}, socket_get_last_error()};
         }
 
@@ -190,10 +211,12 @@ namespace netlib {
           if (_endpoint_addr) {
             freeaddrinfo(_endpoint_addr);
           }
+
+          std::cout << "client disconnected" << std::endl;
           return {};
         }
         inline bool is_connected() {
-          return _socket.has_value();
+          return _socket.has_value() && _socket->is_valid();
         }
         [[nodiscard]] inline std::optional<netlib::socket> get_socket() const {
           return _socket;

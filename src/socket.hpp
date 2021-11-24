@@ -22,7 +22,6 @@ using socklen_t = int32_t;
 using ssize_t = signed long long int;
 #else
 //headers
-#include "error.hpp"
 #include <arpa/inet.h>
 #include <chrono>
 #include <fcntl.h>
@@ -38,6 +37,14 @@ using socket_t = int32_t;
 #endif
 
 namespace netlib {
+
+    static std::error_condition socket_get_last_error(){
+#ifdef _WIN32
+      return WASGetLastError();
+#else
+      return std::make_error_condition(static_cast<std::errc>(errno));
+#endif
+}
 
     enum class AddressFamily {IPv4 = AF_INET, IPv6 = AF_INET6, unspecified = AF_UNSPEC};
     enum class AddressProtocol {TCP = SOCK_STREAM, UDP = SOCK_DGRAM};
@@ -63,7 +70,7 @@ namespace netlib {
       socket() = default;
 
         bool is_valid() {
-            return _socket.has_value();
+            return _socket.has_value() && _socket.value() != INVALID_SOCKET;
         }
 
         [[nodiscard]] std::optional<socket_t> get_raw() const {
@@ -72,42 +79,23 @@ namespace netlib {
 
         bool set_nonblocking(bool nonblocking = true) {
 #ifdef _WIN32
-            uint32_t mode = static_cast<uint32_t>(nonblocking);
-            return ioctlsocket(sockfd, FIONBIO, &mode) == 0;
+            u_long mode = static_cast<u_long>(nonblocking);
+            return ioctlsocket(_socket.value(), FIONBIO, &mode) == 0;
 #else
             return fcntl(_socket.value(), F_SETFL, fcntl(_socket.value(), F_GETFL, 0) | (nonblocking ? O_NONBLOCK : 0)) == 0;
 #endif
         }
 
         bool set_reuseaddr(bool reuseaddr = true){
+#ifdef _WIN32
+            int32_t val = static_cast<int32_t>(reuseaddr);
+            return setsockopt(_socket.value(), SOL_SOCKET, SO_REUSEADDR,
+                              reinterpret_cast<char*>(&val), sizeof(val)) == 0;
+#else
             auto mode = static_cast<int32_t>(reuseaddr);
             return setsockopt(_socket.value(), SOL_SOCKET, SO_REUSEADDR, &mode, sizeof(int32_t)) == 0;
-        }
-
-        bool set_recv_timeout(std::chrono::milliseconds ms){
-#ifdef _WIN32
-            int32_t val = ms.count();
-            return setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO,
-                              reinterpret_cast<char*>(&val), sizeof(val));
-#else
-            timeval tv{.tv_sec = ms.count() / 1000, .tv_usec=(ms.count() % 1000) * 1000 };
-            return setsockopt(_socket.value(), SOL_SOCKET, SO_RCVTIMEO,
-                              reinterpret_cast<void*>(&tv), sizeof(timeval)) == 0;
 #endif
         }
-
-        bool set_send_timeout(std::chrono::milliseconds ms){
-#ifdef _WIN32
-            int32_t val = ms.count();
-            return setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO,
-                              reinterpret_cast<char*>(&val), sizeof(val));
-#else
-            timeval tv{.tv_sec = ms.count() / 1000, .tv_usec=(ms.count() % 1000) * 1000 };
-            return setsockopt(_socket.value(), SOL_SOCKET, SO_SNDTIMEO,
-                              reinterpret_cast<void*>(&tv), sizeof(timeval)) == 0;
-#endif
-        }
-
 
         std::error_condition create(int32_t domain, int32_t stype, int32_t protocol) {
             initialize_system();
@@ -126,7 +114,7 @@ namespace netlib {
         void close() {
             if (_socket) {
 #ifdef _WIN32
-                closesocket(sockfd);
+                closesocket(_socket.value());
 #else
                 ::close(_socket.value());
 #endif
