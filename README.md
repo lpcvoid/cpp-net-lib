@@ -2,7 +2,7 @@
 
     This lib is under heavy development and not really ready for use yet.
 
-![test-status](https://github.com/lpcvoid/cpp-net-lib/actions/workflows/cmake.yml/badge.svg)
+[![All platform build test](https://github.com/lpcvoid/cpp-net-lib/actions/workflows/test_matrix.yml/badge.svg?branch=master)](https://github.com/lpcvoid/cpp-net-lib/actions/workflows/test_matrix.yml)
 
 Modern, header-only, compact and cross-platform C++ network/sockets library. 
 Don't mind the crappy name, I suck at naming things.
