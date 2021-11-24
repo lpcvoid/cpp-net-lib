@@ -137,7 +137,7 @@ namespace netlib {
                                                reinterpret_cast<const char*>(greeting.answer.data()),
                                                greeting.answer.size(),
                                                0);
-                  if ((send_result != greeting.answer.size()) && (_cb_on_error)) {
+                  if ((static_cast<std::size_t>(send_result) != greeting.answer.size()) && (_cb_on_error)) {
                     std::cout << "server error accept" << std::endl;
                     _cb_on_error(new_endpoint, socket_get_last_error());
                   }
@@ -189,7 +189,7 @@ namespace netlib {
                     ssize_t send_result = ::send(
                         endpoint.socket.get_raw().value(),
                         reinterpret_cast<const char*>(response.answer.data()), response.answer.size(), 0);
-                    if (send_result != response.answer.size()) {
+                    if (static_cast<std::size_t>(send_result) != response.answer.size()) {
                       return socket_get_last_error();
                     }
                   }

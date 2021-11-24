@@ -160,7 +160,7 @@ namespace netlib {
           }
           ssize_t send_res = ::send(_socket.value().get_raw().value(), reinterpret_cast<const char*>(data.data()), data.size(), 0);
           if (send_res >= 0) {
-            if (send_res == data.size()) {
+            if (static_cast<std::size_t>(send_res) == data.size()) {
               return {static_cast<std::size_t>(send_res), {}};
             }
             return {send_res, std::errc::message_size};
