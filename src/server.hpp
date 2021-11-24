@@ -116,7 +116,6 @@ namespace netlib {
               //nothing interesting happened before timeout
             } else {
               //error was returned
-              std::cerr << "server select error: " << socket_get_last_error().message() << std::endl;
             }
           }
         }
@@ -138,7 +137,6 @@ namespace netlib {
                                                greeting.answer.size(),
                                                0);
                   if ((static_cast<std::size_t>(send_result) != greeting.answer.size()) && (_cb_on_error)) {
-                    std::cout << "server error accept" << std::endl;
                     _cb_on_error(new_endpoint, socket_get_last_error());
                   }
                 }
@@ -147,13 +145,11 @@ namespace netlib {
                     _cb_on_error(new_endpoint, std::errc::connection_aborted);
                   }
                   remove_client(new_endpoint);
-                  std::cout << "server kicked client accept" << std::endl;
                   continue;
                 }
               }
               if (new_endpoint.socket.is_valid()) {
                 std::lock_guard<std::mutex> lock(_mutex);
-                std::cout << "server added new client, id " << status << std::endl;
                 _clients.push_back(new_endpoint);
                 _busy_map[status] = false;
               }
@@ -172,9 +168,7 @@ namespace netlib {
               total_buffer.insert(total_buffer.end(), buffer.begin(),
                                   buffer.begin() + recv_res);
             } else if (recv_res == 0) {
-              std::cout << "server recv_res == 0" << std::endl;
               remove_client(endpoint);
-              std::cout << "server kicked client recv 0" << std::endl;
               return std::errc::connection_aborted;
             } else if (recv_res < 0) {
               // error
@@ -195,14 +189,11 @@ namespace netlib {
                   }
                   if (response.terminate) {
                     remove_client(endpoint);
-                    std::cout << "server kicked client because wanted"
-                              << std::endl;
                     return std::errc::connection_aborted;
                   }
                 }
                 return {};
               } else {
-                std::cout << "server recv_res == -1" << std::endl;
                 return recv_error;
               }
             }
@@ -212,15 +203,11 @@ namespace netlib {
         bool remove_client(client_endpoint& ce) {
           //the remove_if-> erase idiom is perhaps my most hated part about std containers
           std::lock_guard<std::mutex> lock(_mutex);
-          std::size_t client_count = _clients.size();
           _busy_map.erase(ce.socket.get_raw().value());
-          std::cout << "remove_client, client count at start " << _clients.size() << std::endl;
           std::erase_if(_clients, [&](const client_endpoint& single_endpoint){
             return (ce.socket.get_raw().value() == single_endpoint.socket.get_raw().value());
           });
-          std::cout << "removed client, id " << ce.socket.get_raw().value() << std::endl;
           ce.socket.close();
-          assert((client_count - _clients.size()) == 1);
           return true;
         }
 
@@ -297,7 +284,6 @@ namespace netlib {
             _listener_sock->close();
             _listener_sock.reset();
           }
-          std::cout << "server stopped" << std::endl;
         }
 
         inline std::size_t get_client_count() {
