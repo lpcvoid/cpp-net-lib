@@ -1,4 +1,4 @@
-#include "../3rdparty/doctest/doctest/doctest.h"
+#include "../doctest/doctest/doctest.h"
 #include "../src/netlib.hpp"
 #include <iostream>
 #include <random>

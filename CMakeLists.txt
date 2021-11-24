@@ -23,9 +23,13 @@ set(NETLIB_SRC
 option(BUILD_TESTS "Build tests" ON)
 option(BUILD_EXAMPLES "Build example programs" ON)
 
+if(NOT EXISTS "${CMAKE_SOURCE_DIR}/doctest/CMakeLists.txt")
+    set(BUILD_TESTS OFF)
+endif()
+
 if(BUILD_TESTS)
     # doctest
-    include_directories(3rdparty)
+    include_directories(doctest)
     add_subdirectory(tests)
 endif()
 

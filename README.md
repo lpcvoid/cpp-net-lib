@@ -1,7 +1,5 @@
 # cpp-net-lib
 
-    This lib is under heavy development and not really ready for use yet.
-
 [![All platform build test](https://github.com/lpcvoid/cpp-net-lib/actions/workflows/test_matrix.yml/badge.svg?branch=master)](https://github.com/lpcvoid/cpp-net-lib/actions/workflows/test_matrix.yml)
 
 Modern, header-only, compact and cross-platform C++ network/sockets library. 
@@ -25,6 +23,13 @@ git submodule add https://github.com/lpcvoid/cpp-net-lib.git extern/cpp-net-lib
 ```
 
 This will check out the lib as a submodule within your project. Now just `#include "extern/netlib.hpp"` somewhere.
+
+Alternatively, you can run the examples and tests like you would any other CMake based
+project: 
+```shell
+cmake -B build
+cmake --build build
+```
 
 There are some cmake flags you can use:
 
