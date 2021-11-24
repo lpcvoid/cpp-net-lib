@@ -14,7 +14,6 @@ find_package(Threads)
 set(NETLIB_SRC
         src/netlib.hpp
         src/socket.hpp
-        src/error.hpp
         src/client.hpp
         src/server.hpp
         src/service_resolver.hpp

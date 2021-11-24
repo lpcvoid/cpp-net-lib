@@ -22,7 +22,6 @@ using socklen_t = int32_t;
 using ssize_t = signed long long int;
 #else
 //headers
-#include "error.hpp"
 #include <arpa/inet.h>
 #include <chrono>
 #include <fcntl.h>
@@ -38,6 +37,14 @@ using socket_t = int32_t;
 #endif
 
 namespace netlib {
+
+    static std::error_condition socket_get_last_error(){
+#ifdef _WIN32
+      return WASGetLastError();
+#else
+      return std::make_error_condition(static_cast<std::errc>(errno));
+#endif
+}
 
     enum class AddressFamily {IPv4 = AF_INET, IPv6 = AF_INET6, unspecified = AF_UNSPEC};
     enum class AddressProtocol {TCP = SOCK_STREAM, UDP = SOCK_DGRAM};
@@ -72,8 +79,8 @@ namespace netlib {
 
         bool set_nonblocking(bool nonblocking = true) {
 #ifdef _WIN32
-            uint32_t mode = static_cast<uint32_t>(nonblocking);
-            return ioctlsocket(sockfd, FIONBIO, &mode) == 0;
+            u_long mode = static_cast<u_long>(nonblocking);
+            return ioctlsocket(_socket.value(), FIONBIO, &mode) == 0;
 #else
             return fcntl(_socket.value(), F_SETFL, fcntl(_socket.value(), F_GETFL, 0) | (nonblocking ? O_NONBLOCK : 0)) == 0;
 #endif
@@ -82,7 +89,7 @@ namespace netlib {
         bool set_reuseaddr(bool reuseaddr = true){
 #ifdef _WIN32
             int32_t val = static_cast<int32_t>(reuseaddr);
-            return setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
+            return setsockopt(_socket.value(), SOL_SOCKET, SO_REUSEADDR,
                               reinterpret_cast<char*>(&val), sizeof(val)) == 0;
 #else
             auto mode = static_cast<int32_t>(reuseaddr);
@@ -107,7 +114,7 @@ namespace netlib {
         void close() {
             if (_socket) {
 #ifdef _WIN32
-                closesocket(sockfd);
+                closesocket(_socket.value());
 #else
                 ::close(_socket.value());
 #endif
