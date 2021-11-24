@@ -40,7 +40,7 @@ namespace netlib {
 
     static std::error_condition socket_get_last_error(){
 #ifdef _WIN32
-      return WASGetLastError();
+      return std::make_error_condition(static_cast<std::errc>(WASGetLastError()));
 #else
       return std::make_error_condition(static_cast<std::errc>(errno));
 #endif
