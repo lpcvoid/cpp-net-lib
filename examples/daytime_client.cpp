@@ -24,7 +24,7 @@ int main(int argc, char** argv) {
   std::cout << "Connecting to " << time_host << " on port " << port << std::endl;
   netlib::client client;
 
-  std::error_condition client_create_res =
+  std::error_condition client_create_res = 
       client.connect(time_host, port, netlib::AddressFamily::IPv4,
                      netlib::AddressProtocol::TCP, 1000ms);
 

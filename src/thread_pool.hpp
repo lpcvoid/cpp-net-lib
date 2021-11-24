@@ -86,8 +86,7 @@ namespace netlib {
     }
     //https://stackoverflow.com/a/31078143
     template <typename FUNCTION, typename... FUNCARGS>
-    std::future<typename std::result_of<FUNCTION(FUNCARGS...)>::type>
-    add_task(FUNCTION&& function, FUNCARGS&&... args) {
+    auto add_task(FUNCTION&& function, FUNCARGS&&... args) {
       // first, check if we even have a free thread
       // if not, we add one up to a max allowed
       std::size_t free_threads = (get_thread_count() - get_task_count());

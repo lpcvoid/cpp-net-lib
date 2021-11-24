@@ -13,12 +13,13 @@ jobs:
       fail-fast: false
       matrix:
         config:
-#          - {
-#            name: "Windows MSVC",
-#            os: windows-latest,
-#            build_type: "Release", cc: "cl", cxx: "cl",
-#            environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
-#          }
+          - {
+            name: "Windows MSVC",
+            os: windows-latest,
+            build_type: "Release", cc: "cl", cxx: "cl",
+            #this path will change at some point when VC2022 is released I guess
+            environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
+          }
           - {
             name: "Ubuntu gcc",
             os: ubuntu-latest,
@@ -45,6 +46,12 @@ jobs:
       - name: Build
         run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
-      - name: Test
+      - name: Test on Windows
+        if: startsWith(matrix.config.os, 'windows')
+        working-directory: ${{github.workspace}}/build
+        run: tests/${{env.BUILD_TYPE}}/test_libnetcpp.exe
+
+      - name: Test on Linux/MacOS
+        if: (!startsWith(matrix.config.os, 'windows'))
         working-directory: ${{github.workspace}}/build
         run: tests/test_libnetcpp

@@ -9,12 +9,13 @@
 #pragma comment(lib, "Ws2_32.lib")
 #pragma comment(lib, "AdvApi32.lib")
 
-    //headers
-    #include <winsock2.h>
-    #include <iphlpapi.h>
-    #include <windows.h>
-    #include <ws2tcpip.h>
-  #include <stdint.h>
+//headers
+#include <WinSock2.h>
+#include <WS2tcpip.h>
+#include <Windows.h>
+#include <iphlpapi.h>
+#include <ws2tcpip.h>
+#include <stdint.h>
 
 //defines
 using socket_t = SOCKET;
@@ -39,11 +40,13 @@ using socket_t = int32_t;
 namespace netlib {
 
     static std::error_condition socket_get_last_error(){
+        std::error_code ec;
 #ifdef _WIN32
-      return std::make_error_condition(static_cast<std::errc>(WASGetLastError()));
+        ec = std::error_code(::GetLastError(), std::system_category());
 #else
-      return std::make_error_condition(static_cast<std::errc>(errno));
+        ec = std::error_code(errno, std::system_category());
 #endif
+        return ec.default_error_condition();
 }
 
     enum class AddressFamily {IPv4 = AF_INET, IPv6 = AF_INET6, unspecified = AF_UNSPEC};
@@ -53,21 +56,20 @@ namespace netlib {
     class socket {
     private:
         std::optional<socket_t> _socket = std::nullopt;
-
-        static bool initialize_system() {
-#ifdef _WIN32
-            static bool initialized = false;
-            if (!initialized) {
-                WSADATA wsaData;
-                WSAStartup(MAKEWORD(2,2), &wsaData);
-                initialized = true;
-            }
-#else
-            return true;
-#endif
-        }
     public:
       socket() = default;
+
+      static bool initialize_system() {
+#ifdef _WIN32
+          static bool initialized = false;
+          if (!initialized) {
+              WSADATA wsaData;
+              WSAStartup(MAKEWORD(2, 2), &wsaData);
+              initialized = true;
+          }
+#endif
+          return true;
+      }
 
         bool is_valid() {
             return _socket.has_value() && _socket.value() != INVALID_SOCKET;

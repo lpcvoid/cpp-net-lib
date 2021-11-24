@@ -23,7 +23,7 @@ namespace netlib {
           fd_set fdset;
           FD_ZERO(&fdset);
           FD_SET(sock, &fdset);
-          timeval tv{.tv_sec = timeout.count() / 1000, .tv_usec=static_cast<int32_t>((timeout.count() % 1000) * 1000)};
+          timeval tv{.tv_sec = static_cast<int32_t>(timeout.count() / 1000), .tv_usec=static_cast<int32_t>((timeout.count() % 1000) * 1000)};
           std::cout << "tv.tv_sec = " << tv.tv_sec << ", usec=" << tv.tv_usec << std::endl;
           fd_set* fdset_ptr_read = ((op_class == OperationClass::read) || (op_class == OperationClass::both)) ? &fdset : nullptr;
           fd_set* fdset_ptr_write = ((op_class == OperationClass::write) || (op_class == OperationClass::both)) ? &fdset : nullptr;
@@ -61,10 +61,13 @@ namespace netlib {
         }
 
       public:
-        client() = default;
+        client(){
+          netlib::socket::initialize_system();
+        }
         client(netlib::socket sock, addrinfo* endpoint){
           _socket = sock;
           _endpoint_addr = endpoint;
+          netlib::socket::initialize_system();
         }
         virtual ~client() {
           disconnect();
@@ -97,7 +100,9 @@ namespace netlib {
             int32_t connect_result = ::connect(sock.get_raw().value(), res_addrinfo->ai_addr, res_addrinfo->ai_addrlen);
             if (connect_result == -1) {
               std::error_condition error_condition = socket_get_last_error();
-              if (error_condition != std::errc::operation_in_progress) {
+              if ((error_condition != std::errc::operation_in_progress) &&
+                  (error_condition != std::errc::operation_would_block))
+              {
                 freeaddrinfo(addrinfo_result.first);
                 return error_condition;
               }
@@ -153,10 +158,10 @@ namespace netlib {
           if (wait_res.first) {
             return {0, wait_res.first};
           }
-          ssize_t send_res = ::send(_socket.value().get_raw().value(), data.data(), data.size(), 0);
+          ssize_t send_res = ::send(_socket.value().get_raw().value(), reinterpret_cast<const char*>(data.data()), data.size(), 0);
           if (send_res >= 0) {
             if (send_res == data.size()) {
-              return {send_res, {}};
+              return {static_cast<std::size_t>(send_res), {}};
             }
             return {send_res, std::errc::message_size};
           }
@@ -188,7 +193,7 @@ namespace netlib {
           std::cout << "client recv after wait" << std::endl;
 
           std::vector<uint8_t> data(byte_count, 0);
-          ssize_t recv_res = ::recv(_socket.value().get_raw().value(), data.data(), byte_count, 0);
+          ssize_t recv_res = ::recv(_socket.value().get_raw().value(), reinterpret_cast<char*>(data.data()), byte_count, 0);
           if (recv_res > 0) {
             std::cout << "client recv " << recv_res << std::endl;
             data.resize(recv_res);

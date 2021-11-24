@@ -38,7 +38,6 @@ namespace netlib {
       case EAI_ADDRFAMILY:
 #endif
       case EAI_NODATA:
-      case EAI_NONAME:
       case EAI_FAIL: {
         return { nullptr, std::errc::network_unreachable};
       }
