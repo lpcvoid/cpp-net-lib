@@ -45,7 +45,7 @@ namespace netlib {
         callback_error_t _cb_on_error{};
         std::thread _accept_thread;
         std::thread _processor_thread;
-        netlib::thread_pool _thread_pool = netlib::thread_pool::create<1,1>();
+        netlib::thread_pool _thread_pool;
         std::map<socket_t, std::atomic<bool>> _busy_map;
 
         inline void processing_func() {
