@@ -18,7 +18,8 @@ set(NETLIB_SRC
         src/server.hpp
         src/service_resolver.hpp
         src/endpoint_accessor.hpp
-        src/thread_pool.hpp)
+        src/thread_pool.hpp
+        src/socket_operations.hpp)
 
 option(BUILD_TESTS "Build tests" ON)
 option(BUILD_EXAMPLES "Build example programs" ON)

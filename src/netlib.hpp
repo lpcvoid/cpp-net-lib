@@ -1,5 +1,5 @@
 #pragma once
 
-#include "server.hpp"
 #include "client.hpp"
+#include "server.hpp"
 #include "thread_pool.hpp"
