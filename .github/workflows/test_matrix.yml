@@ -1,6 +1,6 @@
 name: All platform build test
 
-on: [push]
+on: [ push ]
 
 env:
   BUILD_TYPE: Release
