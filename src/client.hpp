@@ -20,7 +20,7 @@ private:
 protected:
     std::optional<netlib::socket> _socket;
     addrinfo *_endpoint_addr = nullptr;
-    netlib::thread_pool _thread_pool; //= netlib::thread_pool::create<1,1>();
+    netlib::thread_pool _thread_pool = netlib::thread_pool::create<1,1>();
 public:
     client()
     {
