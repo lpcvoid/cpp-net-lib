@@ -40,7 +40,6 @@ public:
                 return {total_sent_size, std::errc::connection_aborted};
             } else {
                 std::error_condition send_error = socket_get_last_error();
-                std::cout << "send: error ::: " << send_error.value() <<  std::endl;
                 if ((send_error != std::errc::resource_unavailable_try_again) && (send_error != std::errc::operation_would_block)) {
                     return {total_sent_size, send_error};
                 }
@@ -58,10 +57,6 @@ public:
         while (true) {
             ssize_t recv_res = ::recv(sock.get_raw().value(), reinterpret_cast<char *>(temp_recv_buffer.data()), read_chunk_size, 0);
             if (recv_res > 0) {
-                if (MAX_CHUNK_SIZE != recv_res) {
-                    std::cout << "recv: data " << recv_res << std::endl;
-                }
-
                 data.insert(data.end(), temp_recv_buffer.begin(), temp_recv_buffer.begin() + recv_res);
                 total_recv_size += recv_res;
                 if (total_recv_size == byte_count) {
