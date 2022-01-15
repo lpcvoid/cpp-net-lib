@@ -99,6 +99,12 @@ public:
             host, service, address_family, address_protocol, timeout);
     }
 
+    /*!
+     * @brief Send data to an endpoint in async fashion. See `send` for parameter reference.
+     * @return Returns a future with the same contents that `send` returns.
+     * @extends send
+     */
+
     inline std::future<std::pair<std::size_t, std::error_condition>> send_async(const std::vector<uint8_t> &data,
                                                                                 std::chrono::milliseconds timeout = DEFAULT_TIMEOUT)
     {
@@ -108,6 +114,22 @@ public:
             },
             data, timeout);
     }
+
+
+    /*!
+     * @brief Send data to a server.
+     *
+     * @remark Assumes that a connection was established. Returns \p not_connected if not.
+     *
+     * @param data The data that is to be transmitted.
+     *
+     * @param timeout The max amount of time that this function may wait until
+     * returning. The function may return sooner than \p timeout, for example if an error
+     * was detected or if all bytes indicated in \p byte_count where sent.
+     *
+     * @return Returns a pair with the actual amount of data sent and an error.
+     */
+
     inline std::pair<std::size_t, std::error_condition> send(const std::vector<uint8_t> &data,
                                                              std::chrono::milliseconds timeout = DEFAULT_TIMEOUT)
     {
@@ -129,7 +151,9 @@ public:
     }
 
     /*!
-     * @brief
+     * @brief Recieve data from a server in async fashion. See `recv` for parameter reference.
+     * @return Returns a future with the same contents that `recv` returns.
+     * @extends recv
      */
 
     inline std::future<std::pair<std::vector<uint8_t>, std::error_condition>> recv_async(std::size_t byte_count = 0,
