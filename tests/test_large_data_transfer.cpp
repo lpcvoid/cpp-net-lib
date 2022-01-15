@@ -11,9 +11,6 @@ uint16_t test_port = dist(rd);
 
 TEST_CASE("Large data transfer")
 {
-
-    std::cout << "large data start" << std::endl;
-
     std::vector<uint8_t> large_data_buffer(1024 * 1024, 0);
     uint8_t overflow_counter = 0;
     std::for_each(large_data_buffer.begin(), large_data_buffer.end(), [&](uint8_t &b) {
