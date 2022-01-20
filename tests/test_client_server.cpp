@@ -10,10 +10,7 @@ using namespace std::chrono_literals;
 static const std::string hello_msg = "hello!";
 static const std::vector<uint8_t> client_message = {1, 2, 3};
 
-std::random_device random_device;
-std::mt19937 gen(random_device());
-std::uniform_int_distribution<> distr(10000, 65000);
-static uint16_t test_port = distr(gen);
+extern uint16_t test_port;
 
 std::string to_hex_array(const std::vector<uint8_t> &data)
 {

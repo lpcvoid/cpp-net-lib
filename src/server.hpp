@@ -283,6 +283,7 @@ public:
                 close_and_free();
                 continue;
             }
+            _listener_sock->set_reuseaddr(true);
             _listener_sock->set_nonblocking(true); // we want to be able to join
             int32_t res = ::bind(_listener_sock->get_raw().value(), res_addrinfo->ai_addr, res_addrinfo->ai_addrlen);
             if (res < 0) {

@@ -3,7 +3,7 @@
 #include <atomic>
 
 using namespace std::chrono_literals;
-static const uint16_t test_port = 8888;
+extern uint16_t test_port;
 
 TEST_CASE("RAII test for client and server")
 {

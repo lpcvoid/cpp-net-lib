@@ -2,11 +2,10 @@
 #include "../src/netlib.hpp"
 
 using namespace std::chrono_literals;
-static const uint16_t test_port = 8889;
+extern uint16_t test_port;
 
 TEST_CASE("Test disconnect handling")
 {
-
     netlib::server server;
     netlib::client client;
     bool client_was_connected = false;
