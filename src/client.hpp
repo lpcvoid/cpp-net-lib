@@ -36,6 +36,19 @@ public:
     {
         disconnect();
     }
+#ifdef BUILD_OPENSSL
+
+    inline std::error_condition use_openssl(bool enable) {
+        if (is_connected()) {
+            //disconnect the current session
+            auto dc_error = disconnect();
+            if (dc_error) {
+                return dc_error;
+            }
+        }
+    }
+
+#endif
     inline std::error_condition connect(const std::string &host, const std::variant<std::string, uint16_t> &service,
                                         AddressFamily address_family, AddressProtocol address_protocol, std::chrono::milliseconds timeout = DEFAULT_TIMEOUT)
     {

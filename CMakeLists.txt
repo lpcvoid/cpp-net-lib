@@ -23,6 +23,19 @@ set(NETLIB_SRC
 
 option(BUILD_TESTS "Build tests" ON)
 option(BUILD_EXAMPLES "Build example programs" ON)
+option(BUILD_OPENSSL "Build with TLS support" ON)
+
+if (BUILD_OPENSSL)
+    find_package(OpenSSL REQUIRED)
+    if (NOT OPENSSL_FOUND)
+        message(FATAL_ERROR "Could not find openssl, please install! Stopping build.")
+    endif()
+    message("Using OpenSSL headers: ${OPENSSL_INCLUDE_DIR}")
+    message("Using OpenSSL libs: ${OPENSSL_LIBRARIES}")
+    # add the openssl wrapper to the source list
+    add_compile_definitions(BUILD_OPENSSL)
+    set(NETLIB_SRC ${NETLIB_SRC} src/openssl_wrapper.hpp)
+endif()
 
 if(NOT EXISTS "${CMAKE_SOURCE_DIR}/doctest/CMakeLists.txt")
     set(BUILD_TESTS OFF)
