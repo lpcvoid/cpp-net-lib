@@ -42,7 +42,9 @@ using socket_t = int32_t;
 // this is actually a nice one to have
 #define INVALID_SOCKET (-1)
 #ifdef __APPLE__
-#define MSG_NOSIGNAL SO_NOSIGPIPE
+    #ifndef MSG_NOSIGNAL
+        #define MSG_NOSIGNAL SO_NOSIGPIPE
+    #endif
 #endif
 #endif
 
