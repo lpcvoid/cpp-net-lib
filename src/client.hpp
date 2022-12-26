@@ -13,10 +13,9 @@
 namespace netlib {
 
 using namespace std::chrono_literals;
+static constexpr std::chrono::milliseconds DEFAULT_TIMEOUT = 1000ms;
 
 class client {
-private:
-    static constexpr std::chrono::milliseconds DEFAULT_TIMEOUT = 1000ms;
 protected:
     std::optional<netlib::socket> _socket;
     addrinfo *_endpoint_addr = nullptr;
