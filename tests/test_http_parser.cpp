@@ -1,7 +1,6 @@
 #include "../doctest/doctest/doctest.h"
 #include "../src/http/http.hpp"
 #include "../src/netlib.hpp"
-#include <atomic>
 
 using namespace std::chrono_literals;
 extern uint16_t test_port;

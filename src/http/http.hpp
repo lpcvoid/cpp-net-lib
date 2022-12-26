@@ -4,6 +4,8 @@
 #include <system_error>
 #include <utility>
 #include <vector>
+#include <algorithm>
+
 namespace netlib::http {
 
 using http_header_entry = std::pair<std::string, std::string>;
