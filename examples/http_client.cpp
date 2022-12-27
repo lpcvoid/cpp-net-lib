@@ -14,7 +14,6 @@ void exit_handler(int s){
 int main(int argc, char** argv)
 {
     netlib::http::http_client client;
-
     auto res = client.get("http://example.com");
 
     if (res.second) {
