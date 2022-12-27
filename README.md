@@ -19,10 +19,10 @@ You can just add this repo as a git submodule, which at this point is
 probably (IMO) the best way to handle C++ dependencies.
 
 ```shell
-git submodule add https://github.com/lpcvoid/cpp-net-lib.git extern/cpp-net-lib
+git submodule add https://github.com/lpcvoid/cpp-net-lib.git extern
 ```
 
-This will check out the lib as a submodule within your project. Now just `#include "extern/netlib.hpp"` somewhere.
+This will check out the lib as a submodule within your project. Now just `#include "extern/cpp-net-lib/src/netlib.hpp"` somewhere.
 
 Alternatively, you can run the examples and tests like you would any other CMake based
 project: 
@@ -33,10 +33,11 @@ cmake --build build
 
 There are some cmake flags you can use:
 
-| Option | Default | Description  |
-|---|---|---|
-| __BUILD_TESTS__ | __ON__ | Builds tests using `doctest`,which is then introduced as a dependency.  |
-| __BUILD_EXAMPLES__ | __ON__  | Builds some small example programs. |
+| Option             | Default  | Description                                                                       |
+|--------------------|----------|-----------------------------------------------------------------------------------|
+| __BUILD_TESTS__    | __ON__   | Builds tests using `doctest`,which is then introduced as a dependency.            |
+| __BUILD_EXAMPLES__ | __ON__   | Builds some small example programs.                                               |
+| __WITH_HTTP__      | __ON__   | Builds library with HTTP support                                                  |
 
 ### Short introduction
 
@@ -56,6 +57,8 @@ if you like.
 
 `netlib::server_response` is a struct that you can return in your server callbacks, which instructs the server how to handle your
 response. You can pass it some data to relay to clients, or instruct server to terminate the connection (after sending data, if any).
+
+`netlib::http::client` is an HTTP client, which can currently only GET http responses (No other Verbs, and no TLS).
 
 ### Examples
 
@@ -163,4 +166,25 @@ std::error_condition server_create_res = server.create("localhost",
 if (server_create_res) {
     std::cerr << "Error initializing server: " << server_create_res.message() << std::endl;
 }
+```
+
+#### HTTP client (GET request)
+
+```C++
+netlib::http::http_client client;
+auto res = client.get("http://example.com");
+
+if (res.second) {
+    std::cerr << "Error: " << res.second.message() << std::endl;
+    exit(1);
+}
+
+std::cout << "Got HTTP response: " << res.first->response_code <<
+    ", version " << res.first->version.first << "." << res.first->version.second << std::endl;
+std::cout << "Header entries:" << std::endl;
+std::for_each(res.first->headers.begin(), res.first->headers.end(), [](auto header_entry) {
+   std::cout << header_entry.first << " = " << header_entry.second << std::endl;
+});
+std::cout << "Body:" << std::endl;
+std::cout << res.first.value().body << std::endl;
 ```
