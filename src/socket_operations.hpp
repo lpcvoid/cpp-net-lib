@@ -29,7 +29,7 @@ public:
 
             std::size_t remaining_bytes = data.size() - total_sent_size;
             std::size_t actual_chunk_size = (remaining_bytes > chunk_size) ? chunk_size : remaining_bytes;
-            ssize_t send_res = ::send(sock.get_raw().value(), data_pointer, actual_chunk_size, MSG_NOSIGNAL);
+            ssize_t send_res = ::send(sock.get_raw().value(), data_pointer, static_cast<int32_t>(actual_chunk_size), MSG_NOSIGNAL);
             if (send_res > 0) {
                 total_sent_size += static_cast<std::size_t>(send_res);
                 data_pointer += send_res;

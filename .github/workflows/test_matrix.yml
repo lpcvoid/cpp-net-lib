@@ -18,7 +18,7 @@ jobs:
             os: windows-latest,
             build_type: "Release", cc: "cl", cxx: "cl",
             #this path will change at some point when VC2022 is released I guess
-            environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
+            environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2022/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
           }
           - {
             name: "Ubuntu gcc",
@@ -31,9 +31,9 @@ jobs:
             build_type: "Release", cc: "clang", cxx: "clang++"
           }
           - {
-            name: "MacOS clang",
+            name: "MacOS gcc",
             os: macos-latest,
-            build_type: "Release", cc: "clang", cxx: "clang++"
+            build_type: "Release", cc: "gcc", cxx: "g++"
           }
     steps:
       - uses: actions/checkout@v2

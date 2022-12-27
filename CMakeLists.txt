@@ -19,13 +19,29 @@ set(NETLIB_SRC
         src/service_resolver.hpp
         src/endpoint_accessor.hpp
         src/thread_pool.hpp
-        src/socket_operations.hpp)
+        src/socket_operations.hpp
+)
+
+set(NETLIB_HTTP
+        src/http/client.hpp
+        src/http/http.hpp
+)
 
 option(BUILD_TESTS "Build tests" ON)
 option(BUILD_EXAMPLES "Build example programs" ON)
+option(WITH_HTTP "Build with http support" ON)
 
 if(NOT EXISTS "${CMAKE_SOURCE_DIR}/doctest/CMakeLists.txt")
     set(BUILD_TESTS OFF)
+    message(WARNING "Cannot build tests without doctest! Deactivating tests.")
+endif()
+
+if (WITH_HTTP)
+    if(NOT EXISTS "${CMAKE_SOURCE_DIR}/extern/cpp-uri-parser/URI.hpp")
+        set(WITH_HTTP OFF)
+        message(WARNING "If you want HTTP support, you need to check out submodules (cpp-uri-parser)")
+    endif()
+    message(NOTICE "Building with HTTP support.")
 endif()
 
 if(BUILD_TESTS)

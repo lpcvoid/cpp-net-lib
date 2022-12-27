@@ -5,6 +5,10 @@ set(TEST_SOURCES
         test_large_data_transfer.cpp
         test_raii.cpp)
 
+if (WITH_HTTP)
+    set(TEST_SOURCES ${TEST_SOURCES} test_http_parser.cpp)
+endif()
+
 enable_testing()
 add_executable(test_libnetcpp main.cpp ${TEST_SOURCES})
 target_link_libraries(test_libnetcpp ${CMAKE_THREAD_LIBS_INIT})

@@ -25,6 +25,14 @@ using ssize_t = signed long long int;
 #define MSG_NOSIGNAL 0
 //poll implementation
 #define poll_syscall ::WSAPoll
+//we ignore unused parameter warning on windows, missing impls
+#pragma warning(disable: 4100)
+//use unsafe functions under windows
+#define _CRT_SECURE_NO_WARNINGS
+#pragma warning(disable:4996)
+#pragma warning(disable:4267)
+#pragma warning(disable:4244)
+
 #else
 // headers
 #include <arpa/inet.h>
@@ -42,7 +50,9 @@ using socket_t = int32_t;
 // this is actually a nice one to have
 #define INVALID_SOCKET (-1)
 #ifdef __APPLE__
-#define MSG_NOSIGNAL SO_NOSIGPIPE
+    #ifndef MSG_NOSIGNAL
+        #define MSG_NOSIGNAL SO_NOSIGPIPE
+    #endif
 #endif
 #endif
 
