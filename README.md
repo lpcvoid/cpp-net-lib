@@ -33,11 +33,11 @@ cmake --build build
 
 There are some cmake flags you can use:
 
-| Option             | Default  | Description                                                                       |
-|--------------------|----------|-----------------------------------------------------------------------------------|
-| __BUILD_TESTS__    | __ON__   | Builds tests using `doctest`,which is then introduced as a dependency.            |
-| __BUILD_EXAMPLES__ | __ON__   | Builds some small example programs.                                               |
-| __WITH_HTTP__      | __ON__   | Builds library with HTTP support                                                  |
+| Option             | Default  | Description                                                                                                                          |
+|--------------------|----------|--------------------------------------------------------------------------------------------------------------------------------------|
+| __BUILD_TESTS__    | __ON__   | Builds tests using `doctest`, which is then introduced as a dependency.                                                              |
+| __BUILD_EXAMPLES__ | __ON__   | Builds some small example programs.                                                                                                  |
+| __WITH_HTTP__      | __ON__   | Builds library with HTTP support. [My uri library](https://github.com/lpcvoid/cpp-uri-parser) is then a dependency for parsing URLs. |
 
 ### Short introduction
 
