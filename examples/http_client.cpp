@@ -1,6 +1,6 @@
+#define NETLIB_USE_HTTP
+
 #include "../src/netlib.hpp"
-#include "../src/http/client.hpp"
-#include "../src/http/http.hpp"
 #include <csignal>
 #include <iomanip>
 #include <iostream>
